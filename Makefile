@@ -1,8 +1,18 @@
 .DEFAULT_GOAL := help
 
-# ── Setup ──────────────────────────────────────────────
-# Must work on a bare machine BEFORE Nix is installed, so it depends on
-# nothing this repo provides.
+# ── Contributor setup ──────────────────────────────────
+# Tooling for *editing* this repo, not for bringing a machine up. Git hooks do
+# not travel with a clone, so this runs once per clone, and it must work before
+# Nix is installed — hence Make, and hence nothing here may depend on Nix.
+#
+# PREK_NO_MODIFY_PATH=1 stops the installer writing to five shell rc files
+# (~/.profile, ~/.bashrc, ~/.bash_profile, ~/.zshrc, fish conf.d). The
+# installer has a guard meant to skip that when its install directory is
+# already on PATH, but the guard string-matches PATH against
+# $XDG_DATA_HOME/../bin — literally ".local/share/../bin" — while Omarchy's
+# env-bootstrap appends the normalised ".local/bin". Same directory, different
+# spelling, guard misses. ~/.local/bin is already on PATH on both targets, so
+# suppressing the rc edits loses nothing. See plans/bootstrap.md.
 .PHONY: setup
 setup: ## Install prek and activate git hooks
 	@command -v prek >/dev/null 2>&1 || { \
@@ -10,7 +20,7 @@ setup: ## Install prek and activate git hooks
 		if command -v brew >/dev/null 2>&1; then \
 			brew install prek; \
 		else \
-			curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/latest/download/prek-installer.sh | sh; \
+			curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/latest/download/prek-installer.sh | PREK_NO_MODIFY_PATH=1 sh; \
 		fi; \
 	}
 	prek install
