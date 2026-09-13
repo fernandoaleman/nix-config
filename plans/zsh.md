@@ -46,6 +46,7 @@ One `modules/zsh.nix`, composed of home-manager option assignments plus a small 
 | ~200 aliases | `programs.zsh.shellAliases`, `programs.zsh.shellGlobalAliases` | Attrset — but see open questions |
 | `c()` + `_c` completion for `~/code` | Superseded by zoxide, already an Omarchy default and a home-manager module | Likely **deleted** |
 | `completion/` — `_ag _bundler _g _rg _rspec` | Nix packages install their own completions into the profile's `share/zsh/site-functions`; `enableCompletion` discovers them via `fpath` | **Mostly deleted** |
+| Runtime directories — `~/.local/bin`, `~/.local/state/zsh`, `~/.cache/zsh`, created by a bootstrap script | home-manager creates the parent of `programs.zsh.history.path`; `~/.local/bin` comes with `home.sessionPath`; the `compinit` cache directory is declared beside `completionInit` | **Bootstrap script deleted** — two of three needed no declaration at all |
 | `encrypted_40-api-tokens.zsh.age` | Out of the repo entirely | See `plans/secrets.md` |
 
 **26 files become one module.** The through-line: the platform conditionals are not translated, they are removed, because the requirement that produced them does not exist once both machines resolve the same store paths.
