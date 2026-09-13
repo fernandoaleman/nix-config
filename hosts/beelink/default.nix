@@ -4,6 +4,7 @@
   # Shared modules -- everything portable to the Mac lives in ../../modules.
   imports = [
     ../../modules/bash.nix
+    ../../modules/fzf.nix
     ../../modules/git.nix
     ../../modules/packages.nix
   ];

@@ -15,8 +15,9 @@
     eza
     fd
     ripgrep
-    fzf
     jq
+    # fzf is declared in modules/fzf.nix, which owns its shell integration and
+    # installs the package itself.
 
     # ── System ───────────────────────────────────────────
     btop
