@@ -1,6 +1,6 @@
 # Plan: Foundation — Nix + home-manager on Omarchy and macOS
 
-Revision 1.
+Revision 2.
 
 ## Problem
 
@@ -84,9 +84,11 @@ Directory creation is **configuration, not a build task**. Directories that must
 
 A `Makefile` is the repo's task runner. `just`, flake `apps` and a devShell are all common alternatives in Nix config repositories, but `make setup` has to run on a bare machine *before Nix exists* — installing `prek` and activating git hooks, which do not travel with a clone — so the entry point cannot depend on anything Nix provides. Make is universally present; `just` would itself need installing first. The Nix targets (`switch`, `build`, `check`, `update`, `generations`, `rollback`) are added once the flake exists and host output names are settled.
 
+Revision 1 conflated two audiences in one target. Arming git hooks is something *a contributor to this repo* does once per clone; it has nothing to do with bringing a machine up, and on a fresh install you do not need commit hooks before you need a shell. The two are split: `make setup` stays contributor tooling, and `make bootstrap` becomes the fresh-machine entry point. See [`bootstrap.md`](bootstrap.md).
+
 ### `/nix` must be its own Btrfs subvolume
 
-**Create it before installing Nix.** Omarchy ships snapper configured as:
+**Create it before installing Nix.** Verified on the Beelink 2026-09-13: `/nix` did not exist and no `nix` binary was on PATH, so the decision was still open. Omarchy ships snapper configured as:
 
 ```
 SUBVOLUME="/"
@@ -94,7 +96,28 @@ NUMBER_LIMIT="5"
 TIMELINE_CREATE="no"     # pre-update recovery only
 ```
 
+`/etc/snapper/configs/root` is byte-identical to the shipped `default/snapper/root`. `snapper-timeline.timer` is disabled, `snapper-cleanup.timer` enabled, and the only caller that creates a snapshot is `omarchy-snapshot create`, invoked by `omarchy-update` immediately before the package upgrade. "Pre-update recovery only" is an observation, not an inference.
+
 If `/nix` lands on the root subvolume, all five snapshots retain nix-store state — a store is easily 10–40 GB — and a rollback from the limine boot menu would revert the store together with its SQLite database, silently undoing every package installed since. Relocating a populated `/nix` afterwards is painful; this is a one-shot decision at install time.
+
+The exclusion works because **Btrfs snapshots do not recurse into nested subvolumes**. Omarchy states this in its own source — `omarchy-system-factory-reset:257`, explaining why a restored factory root carries only an empty `/swap` directory where the hibernation swapfile lived.
+
+#### Top-level `@nix`, not a nested `/nix`
+
+The Beelink's layout is four top-level subvolumes on one LUKS-backed Btrfs filesystem, each mounted by an fstab `subvol=` entry — `@` at `/`, `@home`, `@log`, `@pkg` — plus one *nested* subvolume, `/swap`, created inside `@` by `omarchy-hibernation-setup` with no fstab entry at all. So Omarchy itself demonstrates both placements, and `/nix` could take either. Both keep the store out of snapshots. They differ on **restore**, and that decides it.
+
+`/etc/limine-snapper-sync.conf` sets `RESTORE_METHOD=replace`, which that file documents as *"creates a new subvolume from a selected snapshot and replaces the old one"*. Strings in `/usr/lib/limine/limine-snapper-sync` show it copes with nested subvolumes by enumerating `btrfs subvolume list -o` and moving them across, keeping the old root as a *"backup subvolume"* — with a `"Failed to moved the child subvolumes."` error path. A nested `/nix` would therefore *probably* survive a restore, by way of undocumented behaviour in a third-party tool that has a failure mode.
+
+A top-level `@nix` is not a child of `@` at all, so nothing has to move it: `@` can be replaced freely and the fstab entry — restored from any snapshot taken after `@nix` was created — remounts it. It also matches the `@home`/`@log`/`@pkg` convention rather than the `/swap` exception. `@pkg` is the closest precedent: a large, regenerable cache given its own subvolume for exactly this reason. `@nix` is its direct analogue.
+
+The one cost is that a top-level `@nix` survives `omarchy-system-factory-reset` as an orphan subvolume rather than vanishing with the old root. That matters only when handing the machine on, and is one `btrfs subvolume delete` to clean up. Recorded here so it is not rediscovered as a surprise.
+
+Two further points, both verified rather than assumed:
+
+- **The official Nix installer supports a pre-existing `/nix`.** `scripts/install-multi-user.sh:655` — `if [ -d "$NIX_ROOT" ]; then` … *"if /nix already exists, take ownership"* — and `validate_starting_assumptions` makes no claim about `/nix`. Pre-creating the mount is the supported path, not a workaround.
+- **`/nix` must be added to `updatedb.conf`'s `PRUNEPATHS`.** Omarchy deliberately sets `PRUNE_BIND_MOUNTS = "no"` in `install/config/locate.sh` so that subvolume mounts like `/home` get indexed; without pruning, `plocate-updatedb.timer` would index millions of store paths nightly. That script only rewrites `PRUNEPATHS` when `/.snapshots` is missing from it, and preserves existing entries when it does, so the addition is durable across updates and migrations.
+
+Commands, ordering and the rest of the first-boot sequence are in [`bootstrap.md`](bootstrap.md).
 
 ### The Omarchy boundary
 
@@ -115,16 +138,49 @@ home-manager writes read-only store symlinks, so anything it owns inside that se
 
 ## Verification before any module is written
 
-These are inferences from reading the Omarchy tree, not observations on a live machine. Confirm on the Beelink first:
+Worked on the Beelink, 2026-09-13, against a fresh Omarchy Quattro install. Two of the four assumptions were wrong. Findings below; the evidence is cited so a future reader can re-check it rather than trust this document.
 
-1. Does an interactive **zsh login shell** receive `OMARCHY_PATH`? The chain should be `/etc/zprofile` → `/etc/profile` → `/etc/profile.d/omarchy.sh` → `default/bash/env-bootstrap`, but this has not been observed.
-2. Does the same shell receive Nix's PATH injection, and does `~/.nix-profile/bin` precede `/usr/bin`? `env-bootstrap` only ever *appends*, so Nix should keep precedence — unverified.
-3. Confirm `/nix` is on its own subvolume and excluded from snapper before the first `nix build`.
-4. Does `home-manager switch` collide with the `/etc/skel`-seeded `~/.config`? home-manager refuses to clobber unmanaged files, and Omarchy seeds the whole tree at user creation. Expect this on the first switch and record the resolution.
+### 1. Does a zsh login shell receive `OMARCHY_PATH`? — **premise was wrong**
+
+The question cannot be asked as written. **zsh is not installed** (`pacman -Q zsh` → not found) and the login shell is `/usr/bin/bash` (`getent passwd`). None of `/etc/zprofile`, `/etc/zshenv`, `/etc/zsh/zprofile` or `/etc/zsh/zshrc` exist, `/etc/shells` lists no zsh, and `zsh` appears nowhere in Omarchy's package lists. Revision 1 also had the path wrong: Arch's zsh package ships that file at `/etc/zsh/zprofile`, not `/etc/zprofile`.
+
+What *was* confirmed, on the bash login path (`env -i bash -lc`): `/etc/profile.d/omarchy.sh` sources `default/bash/env-bootstrap`, which exports `OMARCHY_PATH=/usr/share/omarchy` and appends `~/.local/share/mise/shims` and `~/.local/bin` to PATH. The "only ever appends" claim is confirmed by reading and by the resulting PATH.
+
+This stops being a verification item and becomes a design question for [`zsh.md`](zsh.md): **where does zsh come from?** If home-manager's `programs.zsh` pulls zsh from nixpkgs, the Arch package is never installed, `/etc/zsh/zprofile` never exists, and a zsh login shell gets no `OMARCHY_PATH` and none of `/etc/profile` at all. The store path would also need to be in `/etc/shells` before `chsh` accepts it. Two sub-questions, neither yet checked: what `etcdir` nixpkgs builds zsh with, and whether the right answer is to install the pacman `zsh` purely for its `/etc/zsh/zprofile` or to source `env-bootstrap` from `programs.zsh.envExtra` directly. The latter is more in keeping with "rebuild, do not port".
+
+### 2. Does Nix keep PATH precedence over `/usr/bin`? — **confirmed, observed**
+
+Predicted structurally, then observed on a login shell after installing Nix on 2026-09-13:
+
+```
+1  /home/faleman/.nix-profile/bin
+2  /nix/var/nix/profiles/default/bin
+3  /usr/local/sbin
+4  /usr/local/bin
+5  /usr/bin
+6  /home/faleman/.local/share/mise/shims
+7  /home/faleman/.local/bin
+```
+
+Nix takes the first two positions and `/usr/bin` is fifth, so the answer is yes with room to spare. The mechanism is the one predicted: `/etc/profile` runs its `append_path '/usr/bin'` calls *before* the `/etc/profile.d/*.sh` loop, `nix.sh` then *prepends*, and `env-bootstrap` only ever appends — mise shims and `~/.local/bin` land at 6 and 7. `nix.sh` also happens to sort before `omarchy.sh`, but the outcome does not depend on that.
+
+One side effect worth noting: `~/.local/bin` now sits *after* `/usr/bin` rather than before it, because removing prek's `env` script removed the only thing that prepended it. Nothing on this machine shadows anything in `~/.local/bin`, so this is a non-issue today — but it is the kind of thing that turns into a confusing afternoon later, so it is written down.
+
+### 3. `/nix` on its own subvolume — **resolved, see above**
+
+Resolved in full: `/nix` did not exist, the decision was open, and the chosen design is a top-level `@nix`. Rationale and evidence are in "`/nix` must be its own Btrfs subvolume"; commands are in [`bootstrap.md`](bootstrap.md).
+
+### 4. Does `home-manager switch` collide with the `/etc/skel`-seeded `~/.config`? — **yes, but narrower than feared**
+
+`/etc/skel` holds 8,068 files and did seed `~/.config` at user creation. But every skel-derived config file compared is **byte-identical to skel** — `alacritty/alacritty.toml`, `btop/btop.conf`, `foot/foot.ini`, `ghostty/config`, `kitty/kitty.conf`, `lazygit/config.yml`, `tmux/tmux.conf`, `starship.toml`. Only `~/.config/git/config` differs, and `omarchy/shell.json`, which is Omarchy-owned per the boundary anyway.
+
+home-manager does not hash-compare against skel — it refuses any existing unmanaged file in the way — so the first switch will still fail on each of these. The resolution is cheap precisely because nothing is being lost: `home-manager switch -b bak`, or delete the identical-to-skel files first. `~/.config/git/config` is the only one needing a real merge.
+
+One wrinkle this turned up, caused by this repo rather than by Omarchy: `make setup` piped prek's installer to `sh`, and that installer wrote `~/.zshrc`, `~/.profile`, `~/.config/fish/conf.d/prek.env.fish` and appended to `~/.bashrc` and `~/.bash_profile`. Cause and fix are in [`bootstrap.md`](bootstrap.md). Whether the stray `~/.zshrc` is an outright collision depends on `programs.zsh.dotDir`: with the XDG default it is merely dead, misleading cruft that never loads; if `dotDir` ever resolves to `$HOME` it becomes a real collision. Either way it should not be there.
 
 ## Rollout
 
-Omarchy first, macOS second. Omarchy is both the primary machine and the harder target; the Mac is forgiving and will receive modules already proven against a hostile environment. Work happens on a fresh Omarchy 4 install on a Beelink SER8, which carries only an SSH key and a personal `omarchy-aws-vpn-client` plugin — nothing to preserve, nothing to break.
+Omarchy first, macOS second. Omarchy is both the primary machine and the harder target; the Mac is forgiving and will receive modules already proven against a hostile environment. Work happens on a fresh Omarchy 4 install on a Beelink SET8, which carries only an SSH key and a personal `omarchy-aws-vpn-client` plugin — nothing to preserve, nothing to break.
 
 The chezmoi repo stays untouched at `fernandoaleman/dotfiles` throughout. Both systems must work simultaneously: the Mac remains on chezmoi while Omarchy moves to Nix. Reverting is `chezmoi init fernandoaleman/dotfiles`.
 
@@ -134,8 +190,9 @@ Sections follow in dependency order, each with its own plan: zsh, terminals, edi
 
 ## Open questions
 
-1. Reproducibility is a strong preference, not a hard requirement — which means the boundary is acceptable, but it should be stated in the repo README so future-me does not over-trust it. Two machines on the same flake but with different Omarchy migration histories are **not** identical; the flake pins the user environment, not the system.
-2. `home.stateVersion` — pinning `26.05` or later makes `programs.zsh.dotDir` default to `${config.xdg.configHome}/zsh`, which is the desired XDG layout for free. Confirm against the home-manager revision actually pinned.
+1. ~~Reproducibility is a strong preference, not a hard requirement — which means the boundary is acceptable, but it should be stated in the repo README so future-me does not over-trust it.~~ **Resolved 2026-09-13:** stated in the README under "What this does and does not pin". Two machines on the same flake but with different Omarchy migration histories are **not** identical; the flake pins the user environment, not the system.
+2. `home.stateVersion` — pinning `26.05` or later makes `programs.zsh.dotDir` default to `${config.xdg.configHome}/zsh`, which is the desired XDG layout for free. Confirm against the home-manager revision actually pinned. Note that `stateVersion` is not a preference dial: it declares which release's default *behaviour* the configuration was written against, so it is chosen once and then left alone.
 3. Does macOS need `nix-darwin` from day one, or is standalone home-manager enough until the macOS defaults section is reached?
-4. Custom `.desktop` icons (six PNGs) need a home — shipped as files in the repo, or resolved from an icon theme. `xdg.desktopEntries.*.icon` accepts either.
+4. Custom `.desktop` icons (six ONGs) need a home — shipped as files in the repo, or resolved from an icon theme. `xdg.desktopEntries.*.icon` accepts either.
 5. **Default browser is Chrome, not Chromium.** Omarchy treats Chrome as first-class (`omarchy-install-browser`, and `omarchy-remove-browser` handles `google-chrome.desktop` explicitly), and both `omarchy-launch-browser` and `omarchy-launch-webapp` resolve the browser at runtime via `xdg-settings get default-web-browser` — so every web-app launcher inherits the default with no per-entry change. The native mechanism is `xdg.mimeApps.defaultApplications` for `x-scheme-handler/http`, `x-scheme-handler/https` and `text/html`. Omarchy's own `xdg-settings set default-web-browser chromium.desktop` runs once in `omarchy-provision-user`, before Nix exists, and `mimeapps.list` is on quattro's retired-config list, so there is no ongoing contention. **Open:** where Chrome comes from. It is unfree, so Nix needs `allowUnfree`; and a GUI Chrome on macOS is usually a Homebrew cask under `nix-darwin`. This may be a legitimate per-platform split under the "does not exist there" rule rather than the "distro already ships it" rule.
+6. ~~Which Nix installer.~~ **Resolved 2026-09-13:** `NixOS/nix-installer`, the NixOS Foundation's fork of the Determinate installer — upstream Nix, first-class handling of a pre-mounted `/nix`, and an uninstall that empties the subvolume without unmounting it. Full comparison and the three rejected alternatives are in [`bootstrap.md`](bootstrap.md).
