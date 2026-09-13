@@ -62,6 +62,8 @@ The corollary, applied before any module is written: **ask whether the thing is 
 
 The bootstrap ordering this buys is the point: clone public → `home-manager switch` → a working shell, editor, terminal and git → *then* authenticate and retrieve the private material.
 
+This is also why the two repositories are cloned differently. `nix-config` is cloned over **HTTPS**, which needs no credentials and is the whole reason it is public; the private reference repository requires SSH or a token and therefore presupposes authentication. Once keys exist on a machine, `make ssh` rewrites the origin remote in place — deriving the SSH URL from whatever HTTPS origin is set rather than hardcoding an account — replacing the old setup's `run_once_after_90-set-chezmoi-remote-ssh` script. Pushing over HTTPS also works once `gh auth login` has installed its credential helper, so this is a preference rather than a requirement.
+
 ### Repository layout
 
 Named files, never numeric prefixes — following Omarchy's own convention in `plans/` and `bin/`.

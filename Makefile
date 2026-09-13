@@ -17,6 +17,20 @@ setup: ## Install prek and activate git hooks
 	prek install --hook-type commit-msg
 	@echo "Done. Hooks are active."
 
+.PHONY: ssh
+ssh: ## Switch the origin remote from HTTPS to SSH
+	@url=$$(git remote get-url origin); \
+	case "$$url" in \
+		https://github.com/*) \
+			new="git@github.com:$${url#https://github.com/}"; \
+			git remote set-url origin "$$new"; \
+			echo "origin -> $$new" ;; \
+		git@github.com:*) \
+			echo "origin already SSH: $$url" ;; \
+		*) \
+			echo "unrecognised origin: $$url" >&2; exit 1 ;; \
+	esac
+
 # ── Lint ───────────────────────────────────────────────
 .PHONY: lint
 lint: ## Run all pre-commit hooks on every file
