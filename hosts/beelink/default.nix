@@ -5,6 +5,7 @@
   imports = [
     ../../modules/bash.nix
     ../../modules/git.nix
+    ../../modules/packages.nix
   ];
 
   home.username = "faleman";

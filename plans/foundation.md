@@ -136,6 +136,21 @@ The reason is mechanical. Omarchy's automatic config refresh is hash-guarded —
 
 home-manager writes read-only store symlinks, so anything it owns inside that set will either be silently un-managed or hard-fail a migration. Outside that set the hash guard makes it safe.
 
+### The theme system is *not* part of that boundary
+
+Checked on 2026-09-13, because it looked like it would be. Omarchy's theming renders templates from `default/themed/` and `~/.config/omarchy/themed/` — 17 of them, covering alacritty, btop, foot, ghostty, kitty, neovim, helix, chromium and more — but `omarchy-theme-set-templates:393` writes every one of them to `$NEXT_THEME_DIR`, which is `~/.local/state/omarchy/current/next-theme`. **Nothing in the theme pipeline writes into `~/.config`.**
+
+The configs in `~/.config` *reference* that state instead:
+
+```
+alacritty.toml:  general.import = [ "~/.local/state/omarchy/current/theme/alacritty.toml" ]
+btop.conf:       color_theme = "current"
+```
+
+So home-manager can own `~/.config/alacritty/alacritty.toml`, `btop.conf`, the terminal configs and `starship.toml` — `starship.toml` freely, since no template targets it, and the others provided the import line is preserved. That is a much narrower boundary than assumed, and it unblocks the terminals section.
+
+One exception, found by grepping every `omarchy-theme-set-*` for writes under `$HOME/.config`: **`omarchy-theme-set-vscode`** writes `~/.config/Code/User/settings.json`, and the Cursor and VSCodium equivalents. Not relevant while the editor is neovim, but it belongs on the list.
+
 ## Verification before any module is written
 
 Worked on the Beelink, 2026-09-13, against a fresh Omarchy Quattro install. Two of the four assumptions were wrong. Findings below; the evidence is cited so a future reader can re-check it rather than trust this document.
