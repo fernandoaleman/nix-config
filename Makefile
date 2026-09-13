@@ -55,7 +55,7 @@ lint-fix: ## Run fixable hooks (trailing-whitespace, end-of-file-fixer)
 # which only arms git hooks for someone editing this repo. Added once the flake
 # exists; the full sequence and its rationale live in plans/bootstrap.md.
 #
-#   bootstrap      nix-subvolume -> nix-install -> home-manager switch
+#   bootstrap      nix-subvolume -> nix-install -> make switch
 #   nix-subvolume  create @nix + fstab entry + updatedb PRUNEPATHS
 #   nix-install    NixOS/nix-installer (the Foundation fork, upstream Nix):
 #                  curl -sSfL https://artifacts.nixos.org/nix-installer \
@@ -67,15 +67,37 @@ lint-fix: ## Run fixable hooks (trailing-whitespace, end-of-file-fixer)
 # so it is the one place the bootstrap asks for sudo.
 
 # ── Nix ────────────────────────────────────────────────
-# Added once the flake exists and host output names are settled. Replaces the
-# chezmoi diff/apply/verify targets from the previous repo:
+# Replaces the chezmoi diff/apply/verify targets from the previous repo.
 #
-#   switch       home-manager switch --flake .#<host>
-#   build        nix build .#homeConfigurations.<host>.activationPackage
-#   check        nix flake check
-#   update       nix flake update
-#   generations  home-manager generations
-#   rollback     home-manager generations + switch to a prior one
+# The configuration is named "<user>@<host>", the form home-manager's own CLI
+# looks for when given a bare `--flake .`. It is passed explicitly all the same,
+# so a switch never depends on what the machine currently calls itself -- this
+# box still answers to Omarchy's default hostname, `omarchy`.
+HM ?= faleman@beelink
+
+.PHONY: switch
+switch: ## Build and activate the configuration
+	home-manager switch --flake .#$(HM)
+
+.PHONY: build
+build: ## Build without activating; leaves ./result to inspect
+	nix build '.#homeConfigurations."$(HM)".activationPackage'
+
+.PHONY: check
+check: ## Evaluate the flake without building
+	nix flake check
+
+.PHONY: update
+update: ## Update all flake inputs and rewrite flake.lock
+	nix flake update
+
+.PHONY: generations
+generations: ## List home-manager generations, newest last
+	home-manager generations
+
+.PHONY: rollback
+rollback: ## Activate the previous generation
+	home-manager rollback
 
 # ── Help ───────────────────────────────────────────────
 .PHONY: help

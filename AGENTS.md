@@ -4,9 +4,18 @@ Nix + home-manager configuration for Omarchy (Arch) and macOS. **Not NixOS** —
 remains the operating system on Linux, macOS remains macOS, and home-manager is the one
 layer both machines share.
 
-**Current state: planning. Nothing is built yet.** There is no flake. The design lives in
-[`plans/`](plans/) and [`plans/foundation.md`](plans/foundation.md) is the entry point —
-read it before proposing or writing anything.
+**Current state: the flake exists and one generation has been activated; no modules are
+written yet.** `flake.nix` pins nixpkgs-unstable and home-manager master, and
+`hosts/beelink/` is a minimal host that switches cleanly — username, home directory,
+`stateVersion`, `xdg.enable`, and `programs.home-manager.enable`, nothing more. `modules/`
+does not exist yet; it is created when the first shared module is written.
+
+The design lives in [`plans/`](plans/) and [`plans/foundation.md`](plans/foundation.md) is
+the entry point — read it before proposing or writing anything.
+
+Note that Nix only sees files git knows about: a new `.nix` file must be `git add`ed
+before `nix build` or `make switch` will find it, or evaluation fails claiming the file
+does not exist.
 
 ## The binding constraint: rebuild, do not port
 

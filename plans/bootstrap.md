@@ -135,6 +135,8 @@ Step 1 was carried out on 2026-09-13 and verified:
 
 Step 2 followed on the same day, with `NixOS/nix-installer` 2.35.2 installing upstream Nix 2.35.2. Verified afterwards: `findmnt -T /nix/store` resolves to `/dev/mapper/root[/@nix]`, so the store is genuinely on the subvolume rather than on `@`; `/nix` is a single mount layer on subvolid 268; `/nix/nix-installer` and `/nix/receipt.json` exist, so `uninstall` is available; `nix-daemon.service` and `.socket` are active with 32 `nixbld` build users; and `nix config show` reports `experimental-features = fetch-tree flakes nix-command`.
 
+Step 3 followed: `flake.nix` pins nixpkgs-unstable and home-manager master with `home-manager/nixpkgs` following ours, so there is only one nixpkgs in the lock. Generation 1 activated cleanly on 2026-09-13. The minimal host places *no* files in `$HOME` — `home-files` in the generation is empty — so the `/etc/skel` collision of foundation.md item 4 is not exercised yet and will first appear with the zsh or git module.
+
 Two things left behind, neither urgent:
 
 - ~~The fstab line omits the sixth field.~~ Fixed the same day; `findmnt --verify` reports `0 parse errors, 0 errors`. While fixing it the mount was briefly stacked two deep — `mount` run a second time over an already-mounted `/nix` — which is harmless but is not the state a fresh boot produces. Popped with one `umount`. Worth knowing that `grep -c ' /nix ' /proc/self/mountinfo` is the quick check, and that it must read exactly `1`: at `0`, an install would put the store on `@`.
@@ -163,7 +165,16 @@ This is also a general rule for this repository, not a one-off: **a bootstrap st
 
 1. ~~Which Nix installer.~~ **Resolved 2026-09-13:** `NixOS/nix-installer`, for the reasons under "Which Nix installer" above. The fork dropped `x86_64-darwin` on 2026-07-14; confirmed not to matter, as every Mac in play is Apple Silicon, which the fork lists as Stable.
 2. **`trusted-users` is `root` only.** The installer leaves the invoking user untrusted, which is fine against `cache.nixos.org` and therefore fine for everything planned so far. It starts to matter the moment a flake declares `extra-substituters` — the nix-community cache is the usual case for home-manager users — because an untrusted user's substituter requests are silently ignored rather than refused. The natural home for the setting is `/etc/nix/nix.custom.conf`, which the installer creates empty and reserves for exactly this. Note that this is *outside* the repo: on non-NixOS Linux, home-manager does not manage `/etc/nix/nix.conf`, so if this is wanted it becomes a fourth bootstrap step rather than a module option.
-3. **Does `make bootstrap` run `switch` at all on its first pass?** The flake needs a host output name, and the host is the machine being bootstrapped. Either the host is detected from `hostname`, or the first switch is a separate explicit command. Detection is tidier and is one more thing to go wrong silently.
+3. ~~Does `make bootstrap` run `switch` at all on its first pass?~~ **Resolved 2026-09-13:** the configuration is named `faleman@beelink`, which is the `<user>@<host>` form home-manager's CLI probes when given a bare `--flake .` — but the Makefile passes `.#$(HM)` explicitly rather than relying on that. Detection would have failed here anyway: the machine still answers to Omarchy's default hostname, `omarchy`, which is a poor host identifier since every Omarchy install starts with it. Renaming the box to `beelink` would make bare detection work and is worth doing for its own sake, but nothing depends on it.
+
+   The first switch is still a separate command, because the `home-manager` CLI does not exist until the first generation installs it. Bootstrapping it from the flake's own locked inputs, rather than pulling a second home-manager from the registry:
+
+   ```sh
+   nix build '.#homeConfigurations."faleman@beelink".activationPackage'
+   ./result/activate
+   ```
+
+   Every switch after that is `make switch`.
 4. **Where does the `/etc/skel` collision resolution live?** `home-manager switch -b bak` as a flag in the Makefile target makes the first switch succeed unattended, but it also silently backs up files on *every* subsequent switch that hits a collision, which is a failure worth seeing. Possibly first-run only.
 5. **Does the bootstrap need a reboot?** Nothing in the sequence obviously requires one — the `@nix` mount is live after `mount /nix`, and the Nix daemon starts on install. Confirm rather than assume, and if a reboot is needed, say so at the end of the run rather than leaving the machine half-configured.
 6. **`chsh` to a Nix-provided shell** needs the store path in `/etc/shells` and is root-level, so if zsh comes from Nix this becomes a fourth bootstrap step. Blocked on the zsh sourcing question in [`zsh.md`](zsh.md).

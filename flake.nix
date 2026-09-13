@@ -1,0 +1,31 @@
+{
+  description = "Nix + home-manager configuration for Omarchy and macOS";
+
+  inputs = {
+    # Unstable rather than a release branch: Omarchy is rolling, so pinning
+    # half the machine to a six-month-old snapshot would drift against the
+    # pacman half. flake.lock pins this just as hard as a release branch
+    # would -- "unstable" names the channel, not the reproducibility.
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      # Without this, home-manager evaluates against its own nixpkgs and the
+      # machine ends up with two of them.
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs =
+    { home-manager, nixpkgs, ... }:
+    {
+      # Named "<user>@<host>", which is the form home-manager's own CLI looks
+      # for when it is given a bare `--flake .`. The Makefile passes the
+      # attribute explicitly anyway, so a switch never depends on what the
+      # machine currently calls itself.
+      homeConfigurations."faleman@beelink" = home-manager.lib.homeManagerConfiguration {
+        pkgs = nixpkgs.legacyPackages."x86_64-linux";
+        modules = [ ./hosts/beelink ];
+      };
+    };
+}

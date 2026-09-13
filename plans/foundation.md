@@ -180,7 +180,7 @@ One wrinkle this turned up, caused by this repo rather than by Omarchy: `make se
 
 ## Rollout
 
-Omarchy first, macOS second. Omarchy is both the primary machine and the harder target; the Mac is forgiving and will receive modules already proven against a hostile environment. Work happens on a fresh Omarchy 4 install on a Beelink SET8, which carries only an SSH key and a personal `omarchy-aws-vpn-client` plugin — nothing to preserve, nothing to break.
+Omarchy first, macOS second. Omarchy is both the primary machine and the harder target; the Mac is forgiving and will receive modules already proven against a hostile environment. Work happens on a fresh Omarchy 4 install on a Beelink SER8, which carries only an SSH key and a personal `omarchy-aws-vpn-client` plugin — nothing to preserve, nothing to break.
 
 The chezmoi repo stays untouched at `fernandoaleman/dotfiles` throughout. Both systems must work simultaneously: the Mac remains on chezmoi while Omarchy moves to Nix. Reverting is `chezmoi init fernandoaleman/dotfiles`.
 

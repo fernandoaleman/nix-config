@@ -7,7 +7,15 @@ home-manager is the single layer both machines share.
 
 ## Status
 
-Planning. Nothing is built yet.
+Bootstrapped. Nix is installed, the flake evaluates, and one home-manager generation is
+active on the Beelink. No configuration modules are written yet — the shell, editor,
+terminal and git all still come from Omarchy's defaults.
+
+```sh
+make switch   # build and activate
+make build    # build without activating
+make check    # evaluate the flake
+```
 
 The design lives in [`plans/`](plans/), following the convention Omarchy uses for its
 own planning documents — each revision-numbered, stating the problem, the approaches

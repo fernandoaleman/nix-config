@@ -4,3 +4,9 @@
 [files]
 # flake.lock is generated and full of base32 hashes that read as typos.
 extend-exclude = ["flake.lock"]
+
+[default.extend-identifiers]
+# The Beelink SER8 is a machine in this setup; typos reads "SER" as a
+# misspelling of "SET" and silently rewrites it. Model numbers are facts, not
+# prose, so they are pinned here rather than left to the corrector.
+SER8 = "SER8"
