@@ -2,7 +2,10 @@
 # here is the user environment only.
 {
   # Shared modules -- everything portable to the Mac lives in ../../modules.
-  imports = [ ../../modules/git.nix ];
+  imports = [
+    ../../modules/bash.nix
+    ../../modules/git.nix
+  ];
 
   home.username = "faleman";
   home.homeDirectory = "/home/faleman";

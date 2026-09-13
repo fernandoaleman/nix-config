@@ -1,6 +1,8 @@
 # Plan: zsh — the interactive shell, rebuilt natively
 
-Revision 1. Depends on [`foundation.md`](foundation.md); in particular its "Rebuild, do not port" constraint governs everything here.
+Revision 2. Depends on [`foundation.md`](foundation.md); in particular its "Rebuild, do not port" constraint governs everything here.
+
+> **Deferred, 2026-09-13.** The machine runs bash — see [`shell.md`](shell.md) for the decision and what it costs. Omarchy Quattro ships no zsh support at all and a substantial bash layer, and the features that would justify the switch (autosuggestions, syntax highlighting) turned out not to be wanted. Nothing below is retracted: the audit, the option names and the 26-files-to-one-module design all still hold, and the expensive content has moved to shell-neutral options (`home.shellAliases`, `home.sessionVariables`, `writeShellScriptBin`) so adopting zsh later replaces a thin wrapper rather than this plan. Open question 2 is resolved: aliases became git subcommands, see [`git.md`](git.md).
 
 ## Problem
 
