@@ -78,6 +78,8 @@ hosts/
 
 Where bootstrap scripts are eventually needed, they follow Omarchy's `install/config/all.sh` shape: named scripts, sourced in order by one entry point — never `NN-` prefixes.
 
+A `Makefile` is the repo's task runner. `just`, flake `apps` and a devShell are all common alternatives in Nix config repositories, but `make setup` has to run on a bare machine *before Nix exists* — installing `prek` and activating git hooks, which do not travel with a clone — so the entry point cannot depend on anything Nix provides. Make is universally present; `just` would itself need installing first. The Nix targets (`switch`, `build`, `check`, `update`, `generations`, `rollback`) are added once the flake exists and host output names are settled.
+
 ### `/nix` must be its own Btrfs subvolume
 
 **Create it before installing Nix.** Omarchy ships snapper configured as:
