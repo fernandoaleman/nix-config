@@ -3,6 +3,10 @@
 {
   # Shared modules -- everything portable to the Mac lives in ../../modules.
   imports = [
+    # Linux-only: the glue that keeps Omarchy's shell layer alive. Has no
+    # macOS counterpart, which is why it is here rather than in modules/.
+    ./omarchy.nix
+
     ../../modules/bash.nix
     ../../modules/fzf.nix
     ../../modules/git.nix

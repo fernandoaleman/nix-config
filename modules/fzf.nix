@@ -22,14 +22,21 @@
     enable = true;
     enableBashIntegration = true;
 
-    # Omarchy sets neither of these, so both were simply missing. Carried over
-    # from the reference setup's conf.d/30-fzf.zsh, where they were the only
-    # lines not concerned with locating Homebrew's copy of fzf.
-    defaultCommand = "rg --files --hidden --follow --glob '!.git/*'";
-    defaultOptions = [
-      "--height 40%"
-      "--layout=reverse"
-      "--border"
-    ];
+    # No defaultCommand and no defaultOptions, deliberately.
+    #
+    # The reference setup set FZF_DEFAULT_COMMAND to
+    # `rg --files --hidden --follow --glob '!.git/*'`. Three of those four
+    # behaviours are now fzf's own defaults -- `fzf --help` gives
+    # `--walker=file,follow,hidden` and `--walker-skip=.git,node_modules` --
+    # because fzf grew a built-in walker in 0.44, years after that line was
+    # written. The only remaining difference is that ripgrep honours
+    # .gitignore and fzf's walker does not, which is not worth a setting.
+    #
+    # FZF_DEFAULT_OPTS is worse than redundant: it applies to *every* fzf
+    # invocation, including Omarchy's `ff` alias, which is a previewer that
+    # renders images inline through `kitty icat`. Forcing `--height 40%` on it
+    # shrinks that preview to a fraction of the terminal. If an inline height
+    # is ever wanted for the widgets specifically, FZF_CTRL_T_OPTS and
+    # FZF_CTRL_R_OPTS are the mechanism that leaves `ff` alone.
   };
 }

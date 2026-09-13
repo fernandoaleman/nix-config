@@ -50,6 +50,25 @@ own behavior was accounted for.
 When reviewing a section, enumerate what the old setup did, then decide keep / drop /
 rebuild for each item **before** writing Nix.
 
+## Both machines, as close to identical as possible
+
+Omarchy and the Mac should differ only where the platform forces it. Before any
+decision, weigh it on both:
+
+- **Can it be the same on both?** Then make it the same, even if one machine already
+  has something like it.
+- **Can it not?** Then say so explicitly, and choose the option that leaves the two
+  closest, rather than the one that is most convenient on whichever machine is in front
+  of you.
+
+There is a specific trap here. *"Omarchy already does this, so home-manager does not need
+to"* is the same sentence as *"the Mac will not have this"* — Omarchy's shell layer, its
+aliases, its functions and its tool initialisation do not exist on macOS. Leaning on them
+is a decision to diverge, and it should be made deliberately or not at all.
+
+The layout encodes this: `modules/` is for what runs on both, `hosts/<name>/` is for what
+cannot. Anything Omarchy-specific belongs under `hosts/beelink/`, not in a shared module.
+
 ## This repository is public
 
 `fernandoaleman/nix-config` is public so a bare machine can be brought up with `git clone`
