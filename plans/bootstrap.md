@@ -175,6 +175,6 @@ This is also a general rule for this repository, not a one-off: **a bootstrap st
    ```
 
    Every switch after that is `make switch`.
-4. **Where does the `/etc/skel` collision resolution live?** `home-manager switch -b bak` as a flag in the Makefile target makes the first switch succeed unattended, but it also silently backs up files on *every* subsequent switch that hits a collision, which is a failure worth seeing. Possibly first-run only.
+4. ~~Where does the `/etc/skel` collision resolution live?~~ **Resolved 2026-09-13:** nowhere — it stays out of the Makefile. `-b bak` was passed by hand for the one switch that needed it (the git module, two files) and `make switch` remains plain. Baking the flag in would silently back up files on every later switch that hits a collision, and a collision after the first is a real failure worth seeing rather than papering over.
 5. **Does the bootstrap need a reboot?** Nothing in the sequence obviously requires one — the `@nix` mount is live after `mount /nix`, and the Nix daemon starts on install. Confirm rather than assume, and if a reboot is needed, say so at the end of the run rather than leaving the machine half-configured.
 6. **`chsh` to a Nix-provided shell** needs the store path in `/etc/shells` and is root-level, so if zsh comes from Nix this becomes a fourth bootstrap step. Blocked on the zsh sourcing question in [`zsh.md`](zsh.md).

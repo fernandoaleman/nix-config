@@ -176,6 +176,10 @@ Resolved in full: `/nix` did not exist, the decision was open, and the chosen de
 
 home-manager does not hash-compare against skel — it refuses any existing unmanaged file in the way — so the first switch will still fail on each of these. The resolution is cheap precisely because nothing is being lost: `home-manager switch -b bak`, or delete the identical-to-skel files first. `~/.config/git/config` is the only one needing a real merge.
 
+**Resolved in practice on 2026-09-13**, when `modules/git.nix` became the first module to write into `~/.config`. Exactly two collisions, both anticipated: `~/.config/git/config` (skel-seeded, later modified by `gh auth login`) and `~/.config/gh/config.yml`. `home-manager switch -b bak` renamed both to `.bak` and linked the store paths over them — no data lost, and the backups are still there to diff against. Nothing else in the tree was touched.
+
+The lesson worth keeping is that the collision set is not "everything skel seeded", it is "the files a module actually declares". With one module it was two files, and `-b bak` on that one switch was the whole resolution.
+
 One wrinkle this turned up, caused by this repo rather than by Omarchy: `make setup` piped prek's installer to `sh`, and that installer wrote `~/.zshrc`, `~/.profile`, `~/.config/fish/conf.d/prek.env.fish` and appended to `~/.bashrc` and `~/.bash_profile`. Cause and fix are in [`bootstrap.md`](bootstrap.md). Whether the stray `~/.zshrc` is an outright collision depends on `programs.zsh.dotDir`: with the XDG default it is merely dead, misleading cruft that never loads; if `dotDir` ever resolves to `$HOME` it becomes a real collision. Either way it should not be there.
 
 ## Rollout

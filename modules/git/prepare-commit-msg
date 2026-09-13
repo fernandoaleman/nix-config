@@ -1,0 +1,32 @@
+#!/bin/sh
+# Prefix the commit message with a ticket id taken from the branch name, when
+# the branch carries one -- `feature/ABC-123-thing` gives `ABC-123 <message>`.
+# No ticket in the branch name means no change, so this is a no-op on branches
+# that do not use the convention.
+#
+# Skipped for merge and squash commits, whose messages git generates.
+
+set -eu
+
+case "${2:-}" in
+merge | squash) exit 0 ;;
+esac
+
+msg_file="$1"
+[ -f "$msg_file" ] || exit 0
+
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+
+# Normalise the Unicode dashes an issue tracker or a paste can introduce, then
+# take the first ticket-shaped token.
+ticket=$(printf '%s' "$branch" | tr '–—‑−' '-' | grep -oE '[A-Z]+-[0-9]+' | head -n1 || true)
+[ -n "$ticket" ] || exit 0
+
+# Leave it alone if the message already starts with the ticket, so amending
+# does not stack prefixes.
+case "$(cat "$msg_file")" in
+"$ticket"*) exit 0 ;;
+esac
+
+printf '%s %s' "$ticket" "$(cat "$msg_file")" >"$msg_file.tmp"
+mv "$msg_file.tmp" "$msg_file"

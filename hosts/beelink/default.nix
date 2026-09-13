@@ -1,9 +1,8 @@
 # Beelink SER8 -- Omarchy (Arch). Omarchy owns the system layer; everything
 # here is the user environment only.
 {
-  # Shared modules land in ../../modules and are imported here as they are
-  # written. Nothing is shared yet, so there is nothing to import.
-  imports = [ ];
+  # Shared modules -- everything portable to the Mac lives in ../../modules.
+  imports = [ ../../modules/git.nix ];
 
   home.username = "faleman";
   home.homeDirectory = "/home/faleman";
