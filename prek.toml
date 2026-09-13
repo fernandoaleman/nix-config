@@ -1,0 +1,37 @@
+# prek configuration (native TOML format)
+# Setup: prek install && prek install --hook-type commit-msg
+# Run:   prek run --all-files
+#
+# Nix-specific hooks (nixfmt, statix, deadnix) are deliberately absent until
+# there is a flake to lint and Nix is installed on both machines. Adding them
+# now would fail on a repo that contains no Nix.
+
+default_install_hook_types = ["pre-commit", "commit-msg"]
+
+# ── Built-in hooks (Rust-native, no dependencies) ─────
+[[repos]]
+repo = "builtin"
+hooks = [
+  { id = "trailing-whitespace", args = [
+    "--markdown-linebreak-ext=md",
+  ] },
+  { id = "end-of-file-fixer" },
+  { id = "check-added-large-files", args = [
+    "--maxkb=500",
+  ] },
+  { id = "check-merge-conflict" },
+  { id = "check-toml" },
+  { id = "check-yaml" },
+]
+
+# ── Commit message linting ─────────────────────────────
+[[repos]]
+repo = "https://github.com/crate-ci/committed"
+rev = "v1.1.7"
+hooks = [{ id = "committed", stages = ["commit-msg"] }]
+
+# ── Spell checking ─────────────────────────────────────
+[[repos]]
+repo = "https://github.com/crate-ci/typos"
+rev = "v1.41.0"
+hooks = [{ id = "typos" }]

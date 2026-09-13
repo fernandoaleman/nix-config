@@ -1,0 +1,6 @@
+# typos configuration
+# https://github.com/crate-ci/typos
+
+[files]
+# flake.lock is generated and full of base32 hashes that read as typos.
+extend-exclude = ["flake.lock"]
