@@ -14,18 +14,6 @@ let
   # silently disable the prek hooks this repo installs via `make setup`.
   # templatedir keeps the original semantics: copied in at clone or init time,
   # per repository, leaving existing hooks alone.
-  gitMessage = pkgs.writeText "gitmessage" ''
-
-    # 50-character subject line
-    #
-    # 80-character wrapped body. Why was this change necessary? How does it
-    # address the problem? Are there any side effects?
-    #
-    # Include a link to the ticket, if any.
-    #
-    # Co-authored-by: Full Name <email@example.com>
-  '';
-
   gitTemplate = pkgs.runCommand "git-template" { } ''
     mkdir -p "$out/hooks"
     cp ${./git/prepare-commit-msg} "$out/hooks/prepare-commit-msg"
@@ -116,15 +104,12 @@ in
         templatedir = "${gitTemplate}";
       };
 
-      core.autocrlf = "input";
-      # Interpolated, not passed directly: this option takes a path string,
-      # and a derivation would be rejected as an attrset.
-      commit.template = "${gitMessage}";
 
       diff = {
         algorithm = "histogram";
-        # Omarchy says `plain`; taking the reference setup's `zebra`, which
-        # distinguishes moved-and-modified from moved-verbatim.
+        # A deliberate disagreement with Omarchy, which sets `plain`. `zebra`
+        # alternates shades so a block that moved *and changed* is visibly
+        # different from one that moved verbatim. Noisier, and worth it.
         colorMoved = "zebra";
         mnemonicPrefix = true;
       };
