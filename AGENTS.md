@@ -82,7 +82,10 @@ migration. `plans/foundation.md` has the mechanics.
   Run `make setup` once per clone — git hooks do not travel with a clone.
 - **`make lint`** runs every hook over every file.
 - **Directory creation is configuration, not a build task** — `home.activation` or
-  `home.file`, never a Makefile target.
+  `home.file`, never a Makefile target. This governs `$HOME`. System-level provisioning
+  that must happen *before Nix exists* — creating the `/nix` Btrfs subvolume — cannot be
+  configuration by definition, and belongs to `make bootstrap`; see
+  [`plans/bootstrap.md`](plans/bootstrap.md).
 - Plans follow Omarchy's planning-document convention: revision-numbered, stating the
   problem, the approaches rejected and why, the chosen design, and open questions. Update
   the relevant plan when a decision is made, in the same change that acts on it.

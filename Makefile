@@ -50,6 +50,22 @@ lint: ## Run all pre-commit hooks on every file
 lint-fix: ## Run fixable hooks (trailing-whitespace, end-of-file-fixer)
 	prek run trailing-whitespace end-of-file-fixer --all-files
 
+# ── Machine bootstrap ──────────────────────────────────
+# Bringing up a *fresh Omarchy install* — a different job from `make setup`,
+# which only arms git hooks for someone editing this repo. Added once the flake
+# exists; the full sequence and its rationale live in plans/bootstrap.md.
+#
+#   bootstrap      nix-subvolume -> nix-install -> home-manager switch
+#   nix-subvolume  create @nix + fstab entry + updatedb PRUNEPATHS
+#   nix-install    NixOS/nix-installer (the Foundation fork, upstream Nix):
+#                  curl -sSfL https://artifacts.nixos.org/nix-installer \
+#                    | sh -s -- install --enable-flakes --no-confirm
+#
+# `nix-subvolume` is the one step that cannot be undone cheaply and cannot be
+# deferred: /nix has to be a separate Btrfs subvolume BEFORE Nix is installed,
+# or the store lands on @ and every Snapper rollback reverts it. It needs root,
+# so it is the one place the bootstrap asks for sudo.
+
 # ── Nix ────────────────────────────────────────────────
 # Added once the flake exists and host output names are settled. Replaces the
 # chezmoi diff/apply/verify targets from the previous repo:
