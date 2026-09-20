@@ -68,7 +68,7 @@ From the reference setup:
 
 | Setting | Disposition |
 |---|---|
-| `user.name` / `user.email` | **Keep, committed.** The identity in use is a personal address already public in this repository's own commit history. Work identity is a `gitdir:` conditional include pointing outside the repo — see `secrets.md` |
+| `user.name` / `user.email` | **Keep, committed.** A personal address, already public in this repository's own commit history. One identity, both machines, every repository — see "No work-identity mechanism" below |
 | `core.excludesfile` + `gitignore` | **Rebuild** as `programs.git.ignores`, a list rather than a file |
 | `core.autocrlf = input` | **Keep.** Correct on both targets |
 | `core.pager = delta`, `interactive.diffFilter`, `[delta]` blocks | **Rebuild** as `programs.delta` with `enableGitIntegration = true`. That option defaults to **false** — without it delta is installed and styled but git never calls it. The two wiring lines are deleted; the styling survives as `options` |
@@ -79,6 +79,19 @@ From the reference setup:
 | `git_template/info/exclude` | **Drop.** Comments only |
 | `commit.template` + `gitmessage` | **Keep**, rebuilt inline — but see open questions |
 | `gh` credential helpers | **Rebuild** as `programs.gh`. The current entries hardcode `~/.local/share/mise/installs/gh/2.100.0/…/gh`, a version-pinned path that breaks on the next `mise up`. `programs.gh.gitCredentialHelper.enable` defaults to `true` and covers both `github.com` and `gist.github.com` |
+
+### No work-identity mechanism
+
+One identity, personal, globally, on both machines. No `includeIf`, no per-repo override, nothing outside the repo.
+
+The reference setup reached the same place by a different route: `.chezmoi.toml.tmpl` used `promptStringOnce` to ask for a name and email once per machine, and had no per-repository mechanism anywhere. That worked, and nothing about moving to Nix changes the requirement.
+
+The reason to be careful here is narrow and worth stating precisely, because it is easy to over-build. There are two directions an identity can be wrong, and they are not symmetric:
+
+- **A work address in public git history** — what `AGENTS.md` forbids, and effectively permanent once pushed. **Impossible while the committed global is the personal one**, which it is, and which it should stay on both machines.
+- **A personal address in work history** — a matter of employer policy, not of safety, and not one this repository can decide.
+
+Only the second would need a mechanism, and it is not needed. A `gitdir:` conditional remains a small addition later — one `includes` block pointing at an uncommitted file — and nothing here forecloses it. Note also that repositories live under `~/code` on *both* machines, so a directory-based condition would not discriminate between work and personal without a sub-convention that does not currently exist.
 
 ### The alias trim: 79 → 15
 
@@ -128,6 +141,6 @@ The other ten stash aliases stay dropped. `git stash`, `git stash pop` and `git 
 ## Open questions
 
 1. ~~Is `commit.template` still wanted?~~ **Dropped 2026-09-20**, along with `core.autocrlf`. Both came from the reference setup rather than from Omarchy and both failed the "ask whether it is needed" test: the template predates this repository's conventional-commit enforcement and had not been reached for, and `autocrlf` defends against CRLF that neither Linux nor macOS produces, where git's own guidance is now `.gitattributes text=auto` per repo. `diff.colorMoved` keeps `zebra` over Omarchy's `plain` as a recorded disagreement rather than an unexplained difference.
-2. **Should the `prepare-commit-msg` hook be global or scoped to work repositories?** It is a no-op on any branch without an `ABC-123` pattern, so global is harmless in practice — but a branch named `feat/API-2-thing` would get an unwanted prefix. Scoping it under the same `gitdir:` conditional as the work identity is the tidier answer if that conditional is being written anyway.
+2. ~~Should the `prepare-commit-msg` hook be global or scoped to work repositories?~~ **Global, resolved 2026-09-20.** The question only existed because a `gitdir:` conditional was expected to be written for the work identity; with that dropped, there is nothing to scope it under, and adding a conditional solely for the hook would be machinery in search of a problem. It is a no-op on any branch without an `ABC-123` pattern. The residual risk is that a branch named `feat/API-2-thing` picks up an unwanted `API-2` prefix — visible immediately in the commit message, and fixed with `git commit --amend`.
 3. **`init.defaultBranch = master`.** Both existing configs say `master` and this repository uses it, so it is kept. Noting it only because it is now an unusual choice and the decision should be deliberate rather than inherited.
 4. **Does `gh` belong in `git.nix`?** Its only job here is the credential helper, so it sits beside git rather than in a module of its own. It moves out the moment anything else about `gh` is configured.

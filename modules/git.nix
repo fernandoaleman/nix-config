@@ -58,9 +58,15 @@ in
     settings = {
       user = {
         name = "Fernando Aleman";
-        # Personal address, already public in this repository's own history.
-        # The work identity is a gitdir: conditional include that lives outside
-        # the repo -- see plans/secrets.md.
+        # One personal identity, both machines, every repository. Already
+        # public in this repository's own history, so committing it discloses
+        # nothing new.
+        #
+        # There is deliberately no work-email mechanism. The direction that
+        # would matter -- a work address landing in public git history -- is
+        # impossible while the committed global is the personal one, and the
+        # other direction is a matter of employer policy rather than of
+        # safety. See plans/git.md.
         email = "fernandoaleman@mac.com";
       };
 
