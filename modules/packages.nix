@@ -11,8 +11,6 @@
 {
   home.packages = with pkgs; [
     # ── Reading and searching ────────────────────────────
-    bat
-    eza
     fd
     ripgrep
     jq
@@ -43,10 +41,7 @@
     shellcheck
     tldr
 
-    # ── Prompt and navigation ────────────────────────────
-    # Installed but not configured: Omarchy's rc initialises all three, and
-    # resolves them through PATH, so these are the binaries it initialises.
-    starship
-    zoxide
+    # bat, eza, fzf, starship and zoxide are declared in their own modules,
+    # which configure them and install the package themselves.
   ];
 }

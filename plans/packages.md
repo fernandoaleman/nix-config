@@ -22,6 +22,8 @@ So the question is not "which packages" but **"which packages should Nix own, gi
 
 ## Chosen design
 
+> **Revised 2026-09-20.** The original design was binaries-only, on the grounds that Omarchy configures these tools already. Under the parity rule in `foundation.md` that reads differently: *"Omarchy already configures it"* is the same sentence as *"the Mac will not have it configured"*. Tools with real configuration now get a shared module that owns it, so the two machines match and the config is edited in one place. `home.packages` keeps only what needs no configuration at all. The section below is the original reasoning, kept because the conflict analysis in it still holds; "What changed" follows it.
+
 **`home.packages` only.** This pass installs binaries and pins them. It configures nothing and touches no shell integration.
 
 That is not a compromise — it is the whole benefit with none of the conflict surface. `flake.lock` pins the versions, both machines resolve the same store paths, and `~/.nix-profile/bin` precedes `/usr/bin` on the PATH (verified: positions 1 and 5 of a login shell), so the Nix build wins wherever both exist. Omarchy's `eval "$(starship init bash)"` resolves `starship` through that same PATH, which means Omarchy's shell layer transparently initialises *Nix's* binary. Nothing needs suppressing.
@@ -50,6 +52,40 @@ Applying it to the reference setup, with the "ask whether it is needed" test fro
 | `zsh`, `zsh-autosuggestions`, `zsh-completions`, `zsh-syntax-highlighting` | **Dropped.** See `shell.md` |
 | `coreutils` | **macOS only** if at all — it exists to get GNU behaviour over BSD, a requirement that does not exist on Linux |
 | Hyprland, fonts, drivers, ~190 others | **Omarchy.** Not Nix's business |
+
+## What changed, and how parity actually works
+
+A tool's configuration lives in `modules/<tool>.nix`, both hosts import it, and editing it once changes both machines. That is the whole mechanism — no templating, no copying, no per-host duplication. `modules/fzf.nix` was already this shape; `starship.nix`, `bat.nix` and `aliases.nix` follow it.
+
+| Module | Carries |
+|---|---|
+| `starship.nix` | Omarchy's `starship.toml`, verbatim |
+| `bat.nix` | `theme = "ansi"`, plus bat-as-`MANPAGER` |
+| `aliases.nix` | Omarchy's eza aliases, `..`/`...`/`....`, zoxide and the `zd` function |
+| `fzf.nix` | the `Ctrl-R` integration |
+
+### Theming turned out not to be the obstacle
+
+The fear was that Omarchy's configs are themed and its theme system is Linux-only. They are not, in the way that mattered. Omarchy's `starship.toml` uses **named** ANSI colours — `bold cyan`, `italic cyan` — and its bat theme is literally `ansi`. Both resolve against the terminal's sixteen-colour palette rather than hardcoding hex values.
+
+So Omarchy already defers colour to the terminal, and the same config produces the same appearance on any terminal themed the same way. Cross-machine theming collapses into the terminals section instead of being a per-tool problem. The exceptions are `btop`, whose `color_theme = "current"` resolves through a symlink into `~/.local/state/omarchy/`, and the terminal configs themselves.
+
+### What is portable, and what is not
+
+Of Omarchy's shell layer, the portable part is most of it: the eza aliases, the navigation aliases, `zd`, and the tool configuration above. Deliberately not shared:
+
+- **`open()`** — Omarchy wraps `xdg-open`; macOS has a native `open` that must not be shadowed.
+- **`a` (omarchy-agent), `h` (herdr), `ic`/`ix`/`icx` (its `tdl` tmux helpers)** — wrap tools that do not exist on macOS.
+
+Those stay in Omarchy's own layer, reached through `hosts/beelink/omarchy.nix`.
+
+### `zd` is the one that cannot be a package
+
+Per zsh.md's rule, a helper that mutates the calling shell stays a shell function; everything else becomes a `writeShellScriptBin` derivation. `zd` calls `builtin cd`, so it is the function case, and it lives in `programs.bash.initExtra` rather than becoming a program.
+
+### A copying hazard worth recording
+
+Omarchy's `starship.toml` contains Nerd Font glyphs in the private use area — `U+EBAB`, `U+F00C`, `U+EA71` for the conflicted, up-to-date and modified git states. They render as nothing in a terminal without that font, so transcribing the file by eye silently dropped all three and produced a prompt missing its git icons. The fix was to generate the Nix from the file's actual bytes and annotate each glyph with its codepoint. Any future config copied out of Omarchy should be diffed *semantically* — `tomllib`, not the eye — before being trusted.
 
 ## Open questions
 

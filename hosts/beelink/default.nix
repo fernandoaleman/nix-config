@@ -7,10 +7,13 @@
     # macOS counterpart, which is why it is here rather than in modules/.
     ./omarchy.nix
 
+    ../../modules/aliases.nix
     ../../modules/bash.nix
+    ../../modules/bat.nix
     ../../modules/fzf.nix
     ../../modules/git.nix
     ../../modules/packages.nix
+    ../../modules/starship.nix
   ];
 
   home.username = "faleman";
