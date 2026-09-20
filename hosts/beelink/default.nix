@@ -7,6 +7,7 @@
     # macOS counterpart, which is why it is here rather than in modules/.
     ./omarchy.nix
 
+    ../../modules/alacritty.nix
     ../../modules/aliases.nix
     ../../modules/bash.nix
     ../../modules/bat.nix
