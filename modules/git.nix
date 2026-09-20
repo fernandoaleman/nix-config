@@ -74,19 +74,26 @@ in
       # reference setup's, plus a few promoted from the shell aliases. The
       # rest of the 79 dissolved or were dropped; plans/git.md has the list.
       #
-      # `co` is deliberately absent, though both existing configs ship it.
-      # `git checkout` is two commands wearing one name: `checkout <branch>`
-      # switches, `checkout <file>` destroys uncommitted work with no
-      # confirmation and no undo. `switch` cannot touch the working tree, so
-      # removing the shortcut means the dangerous spelling is never the one
-      # that comes out of muscle memory. `git checkout` still works when typed
-      # in full.
+      # Both `co` and `sw` are here on purpose. `git checkout` is two commands
+      # wearing one name -- `checkout <branch>` switches, `checkout <file>`
+      # destroys uncommitted work with no confirmation and no undo -- and
+      # `switch` is the half that cannot touch the working tree.
+      #
+      # Pointing `co` at `switch` instead was tried and does not work: switch
+      # spells branch creation `-c`, so `co -b` fails with `unknown switch`,
+      # and `switch <sha>` refuses a commit without `--detach`. Aliasing `co`
+      # to the safe command would quietly break two things that work today.
+      #
+      # So `co` keeps its real meaning and the footgun with it. Dropping the
+      # alias was never much of a guard anyway: `git checkout` is four more
+      # characters, and twenty years of muscle memory types them.
       alias = {
         aa = "add --all";
         amend = "commit -v --amend";
         ap = "add --patch";
         br = "branch";
         ci = "commit -v";
+        co = "checkout";
         cp = "cherry-pick";
         d = "diff";
         dc = "diff --cached";

@@ -103,11 +103,11 @@ Three buckets, not two.
 
 **Dropped as unused (50).** The stash family alone is eleven aliases for a command already three characters long; `gcs` and `grbs` are multi-step shell one-liners with temporary variables; `gcount`, `gwc`, `gscp`, `gmt`, `gf` are rare. `grep` is not a git alias at all — it shadows the binary with `--color=always` and goes.
 
-**Kept (15).** Six are the uncontested core already present in *both* existing git configs, so they are not a new invention:
+**Kept (16).** Seven are the uncontested core already present in *both* existing git configs, so they are not a new invention:
 
 ```
 aa = add --all          ap = add --patch        br = branch
-ci = commit -v          pf = push --force-with-lease
+ci = commit -v          co = checkout           pf = push --force-with-lease
 st = status
 ```
 
@@ -121,11 +121,15 @@ cp    = cherry-pick                     undo = reset --soft HEAD~1
 sw    = switch                          wip  = stash push --include-untracked
 ```
 
-### `co` is deliberately absent, and `sw` deliberately present
+### `co` and `sw` both, and why `co = switch` does not work
 
-Both existing configs ship `co = checkout`, and it is dropped anyway. `git checkout` is two commands wearing one name: `checkout <branch>` switches, and `checkout <file>` destroys uncommitted work with no confirmation and no undo. `git switch` cannot touch the working tree at all — the split exists precisely to remove that overload, and the experimental notice is gone as of git 2.55. Removing the shortcut means the dangerous spelling is never what comes out of muscle memory; `git checkout` still works when typed in full.
+`git checkout` is two commands wearing one name: `checkout <branch>` switches, and `checkout <file>` destroys uncommitted work with no confirmation and no undo. `git switch` is the half that cannot touch the working tree — the split exists precisely to remove that overload, and switch's experimental notice is gone as of git 2.55.
 
-This is the one alias with no antecedent in either config, kept on a deliberate decision to change a habit rather than on evidence of use — the opposite of how the rest of the list was chosen, and worth naming as such.
+`sw` is the one alias with no antecedent in either config, kept on a deliberate decision to prefer `switch` rather than on evidence of use. `gsw` in the reference setup was a stash command; it has nothing to do with this.
+
+`co` was dropped for a while on the theory that removing the shortcut keeps the dangerous spelling out of muscle memory, then restored. Two things argued against keeping it out. Pointing `co` at `switch` instead — safe command, familiar name — was tried and fails: switch spells branch creation `-c`, so `co -b` errors with `unknown switch`, and `switch <sha>` refuses a commit without `--detach`. It would quietly break two things that work today. And dropping the alias was never much of a guard in the first place, since `git checkout` is four more characters and twenty years of muscle memory types them.
+
+So both are present, `sw` is the one to reach for, and `co` keeps its real meaning and its footgun. The footgun is real — verified: `git checkout -- f.txt` reverted an edit with no prompt and no output.
 
 ### `wip`, and what the reference setup's stash idiom actually said
 
