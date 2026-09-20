@@ -48,6 +48,14 @@ Two things cost time here and are worth recording:
 
 Safe for home-manager to own: the path is not in `always_copy_config_files`, and no migration writes to it.
 
+### macOS Option must be made to send Alt
+
+Omarchy's tmux config binds **26 prefix-less Alt combinations** — `M-Enter` to split, `M-1`…`M-9` for windows, `M-arrows` for windows and sessions, `C-M-arrows` for panes, `C-M-S-arrows` to resize. On Linux, Alt sends Alt and they simply work.
+
+On macOS, Option composes characters (`⌥e` → é) and alacritty's `option_as_alt` defaults to `"None"`, so **every one of those bindings would silently do nothing**. No error, no warning — the keys just would not fire.
+
+`option_as_alt = "Both"` is therefore in `modules/alacritty.nix` rather than the Mac host: the setting is macOS-only but alacritty on Linux parses it without complaint, verified with `alacritty migrate --dry-run` and a real launch, so keeping it shared guarantees the Mac gets it. `"Both"` rather than `"OnlyLeft"` because both Alt keys send Alt on Linux and matching that is the point; `"OnlyLeft"` trades one Alt key back for ⌥-composition if that is ever missed.
+
 ## Open questions
 
 1. **Font size and window decorations will not stay shared.** `size = 9` and `decorations = "None"` are right for the Beelink under Hyprland, which draws no titlebar. A retina Mac wants a larger size — the reference setup used 20 against 12 — and `"buttonless"` rather than `"None"`. Both belong in the macOS host as overrides rather than being pre-emptively split now.

@@ -47,6 +47,21 @@
         # Hyprland draws no titlebar, so alacritty is told not to expect one.
         # macOS has no compositor doing that, and will want "buttonless".
         decorations = "None";
+
+        # macOS-only, and inert on Linux -- alacritty parses it without
+        # complaint, so it lives here rather than in the Mac host.
+        #
+        # It matters a great deal. Omarchy's tmux config binds 26 prefix-less
+        # Alt combinations: M-Enter to split, M-1..M-9 for windows, M-arrows
+        # for windows and sessions, C-M-arrows for panes, C-M-S-arrows to
+        # resize. On macOS, Option defaults to composing characters -- ⌥e gives
+        # é -- and alacritty's option_as_alt defaults to "None", so every one of
+        # those bindings would silently do nothing there.
+        #
+        # "Both" rather than "OnlyLeft" because on Linux both Alt keys send
+        # Alt, and matching that is the point. The cost is losing ⌥-composition
+        # on the Mac; "OnlyLeft" trades one Alt key back for it.
+        option_as_alt = "Both";
       };
 
       keyboard.bindings = [
