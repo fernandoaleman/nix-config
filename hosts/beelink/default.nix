@@ -16,6 +16,7 @@
     ../../modules/git.nix
     ../../modules/packages.nix
     ../../modules/starship.nix
+    ../../modules/tmux.nix
   ];
 
   home.username = "faleman";

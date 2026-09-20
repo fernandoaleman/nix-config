@@ -33,6 +33,13 @@
     foot.desktop
   '';
 
+  # Omarchy's tmux keybinding cheatsheet, which shells out to an omarchy-*
+  # binary and so cannot be shared. The binding itself is Omarchy's; only its
+  # location here is this repo's doing.
+  programs.tmux.extraConfig = ''
+    bind -N "Show Tmux keybindings" ? display-popup -E -w 80% -h 70% -T "Tmux keybindings" "omarchy-menu-tmux-keybindings --print | less -R"
+  '';
+
   programs.bash = {
     # home-manager writes ~/.bashrc and ~/.profile, replacing the skel-seeded
     # ~/.bashrc outright. Omarchy's entire interactive layer -- 28 aliases, 22
