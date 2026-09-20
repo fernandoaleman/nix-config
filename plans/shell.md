@@ -55,9 +55,54 @@ Two fears that turn out unfounded: nix-darwin's `/etc/bashrc` opens with `[ -r "
 
 All of that is moot under standalone home-manager, which writes none of those `/etc` files — see foundation.md open question 3.
 
+## The alias trim
+
+The reference setup had 137 aliases. 79 were git and became 17 git subcommands in [`git.md`](git.md); the other 58 are covered here and became 12. Omarchy's own portable set — `ls`, `lsa`, `lt`, `lta` and the `..`/`...`/`....` chain — is carried alongside them in `modules/aliases.nix`, so the shared file declares 19 in total.
+
+### docker: 36 → 9
+
+Docker was 36 of the 58 on its own. The cut follows the same reasoning that took the git aliases down: once `d` and `dc` exist, everything else is reachable through them, and most of the rest saved two to four keystrokes over `d ps` or `dc up`. Six saved exactly one — `dstart` over `d start`.
+
+Kept: `d`, `dc`, `dps`, `dpsa`, `dcu`, plus the cleanup set below. `d` duplicates Omarchy's own alias identically and is declared anyway, because Omarchy's does not exist on macOS.
+
+The compose set could be cut harder than the git set because day-to-day compose work happens in lazydocker rather than the CLI.
+
+**The cleanup trio kept its names and lost its implementations.** They were `docker rm $(docker ps -a -q)`, `docker rmi -f $(docker images -q)` and `docker volume rm $(docker volume ls -q)` — written before `prune` existed, which Docker added in 1.13, in 2017. The same shape as the fzf walker: a workaround for something upstream fixed years ago.
+
+```
+drmc = docker container prune
+drmi = docker image prune -a
+drmv = docker volume prune -a
+drma = docker system prune -a --volumes
+```
+
+The `-a` flags are not optional. `image prune` alone takes only *dangling* images and `volume prune` alone takes only *anonymous* volumes, so without them neither alias would resemble what it used to do. They also now prompt before deleting, which the originals did not — an improvement, and `-f` skips it.
+
+One real behaviour change: `drmi` was `docker rmi -f`, which force-removed images even while a container was using them. `prune` removes only what nothing references, and there is no prune equivalent for the old behaviour. Forcing an image out from under a running container is a mess rather than a cleanup.
+
+### The other 22 → 3
+
+Kept: `ll`, `mkdir = "mkdir -p"`, and `path`. Everything else went, for reasons that were mostly structural rather than taste:
+
+| Dropped | Why |
+|---|---|
+| `ls = "eza --icons=always"` | Omarchy's is strictly richer and already declared. Parity rule: Omarchy's wins |
+| `be = "noglob bundle exec"` | **`noglob` is a zsh builtin.** It does not exist in bash and would have failed outright |
+| `top = "btm"` | `btm` is not installed — the alias pointed at nothing |
+| `ag = "ag -uf --hidden"` | silver-searcher is not installed; ripgrep replaced it |
+| `chez = "chezmoi"` | Dead. chezmoi is what this repository replaces |
+| `b`, `bu`, `s`, `migrate` | Rails work now happens through Claude Code and Codex rather than at the shell |
+| `ta`, `ti`, `tp`, `tv` | terraform is still used, but is not installed here and gets its own discussion |
+| `cp = "cp -iv"`, `mv = "mv -iv"`, `cat = "bat"` | Considered and declined. Omarchy defines none of `cp`, `mv`, `mkdir`, `cat`, `ln` — they are plain coreutils binaries — so there was no conflict to resolve, only a preference, and the preference was to leave POSIX tools alone |
+| `ln = "ln -v"`, `e = "$EDITOR"`, `v = "$VISUAL"` | Never used |
+
+`mkdir` kept `-p` but dropped `-v`. `ll` is a second name for the view `lsa` already gives; it is there for the muscle memory, not because the listing differs.
+
+Worth recording that **12 of those 22 pointed at tools not installed on this machine** — terraform, bundler, rspec, rake, silver-searcher, bottom, chezmoi. Not an argument to drop them on its own, but it does mean none had been typed since the machine was built.
+
 ## Open questions
 
 1. **Revisit zsh when?** Nothing forces a decision. The cheap experiment is already running: this machine has been on bash since 2026-08-30. If something turns out to be missed, `zsh.md` is still accurate and the content in `home.shellAliases`/`home.sessionVariables` carries over untouched.
 2. **Omarchy already runs `starship init bash`, `mise activate bash`, `zoxide init bash` and sources fzf's key bindings from its own rc.** Enabling `programs.starship`/`programs.zoxide`/`programs.fzf` would add a *second* init to `initExtra`. Needs resolving in the packages module — either let Omarchy do it and take only the packages from Nix, or suppress the integration on one side.
 3. **The login shell is `/usr/bin/bash` while `programs.bash` puts nix's bash on PATH.** So an interactive `bash` is nix's and the login shell is Arch's. Harmless today (both 5.3), but it means `chsh` to the store path is still an open option, with the same `/etc/shells` friction zsh would have had.
-4. **The remaining ~58 non-git aliases** have not been trimmed yet. Unblocked now that `home.shellAliases` works.
+4. ~~The remaining ~58 non-git aliases have not been trimmed yet.~~ **Done 2026-09-20: 58 → 12.** See "The alias trim" below.

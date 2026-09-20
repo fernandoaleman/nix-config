@@ -68,7 +68,7 @@ The five autoloaded functions are audited individually before anything is writte
 
 ## Open questions
 
-1. **Alias trim.** Roughly 200 aliases exist and well under 10% are believed to be in regular use. They are reviewed section by section — unix, bundler, rails, silver-searcher, terraform, git, docker, monitoring — keeping only what is actually typed. The chezmoi alias goes regardless.
+1. ~~Alias trim.~~ **Done 2026-09-20.** 137 aliases, not 200: 79 git became 17 git subcommands (see [`git.md`](git.md)), and the other 58 became 12 (see [`shell.md`](shell.md)). The chezmoi alias went, as predicted.
 2. **Git aliases specifically, ~80 of the total.** `shellAliases` maps the names but not the `compdef _git gst=git-status` companions. The natively-correct alternative is `programs.git.aliases`, which works in every shell and in scripts and brings completion for free — at the cost of changing muscle memory from `gst` to `g st`. Decide during the trim, before any are written.
 3. **Does zoxide fully replace `c()`?** `z code` covers the common case. `programs.zsh.dirHashes` is a third option giving `cd ~code`. Expected outcome is that zoxide alone wins and both alternatives are dropped.
 4. **`hist_verify`** has no home-manager option and needs one `setopt` line in `initContent` — confirm it is still wanted.
