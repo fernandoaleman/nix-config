@@ -74,32 +74,37 @@ in
       # reference setup's, plus a few promoted from the shell aliases. The
       # rest of the 79 dissolved or were dropped; plans/git.md has the list.
       #
-      # Both `co` and `sw` are here on purpose. `git checkout` is two commands
-      # wearing one name -- `checkout <branch>` switches, `checkout <file>`
-      # destroys uncommitted work with no confirmation and no undo -- and
-      # `switch` is the half that cannot touch the working tree.
+      # `co` is a tripwire, not a shortcut. It refuses and prints the switch
+      # or restore spelling instead, so twenty years of muscle memory gets
+      # retrained rather than silently served.
       #
-      # Pointing `co` at `switch` instead was tried and does not work: switch
-      # spells branch creation `-c`, so `co -b` fails with `unknown switch`,
-      # and `switch <sha>` refuses a commit without `--detach`. Aliasing `co`
-      # to the safe command would quietly break two things that work today.
+      # It can refuse outright because `switch` covers every branch operation
+      # `checkout` does -- verified: `-c` creates, `--detach` detaches, `-`
+      # returns to the previous branch -- and `restore` covers the file half.
+      # Nothing is stranded. `git checkout` typed in full remains the escape
+      # hatch, which is also why this is a nudge rather than a lock.
       #
-      # So `co` keeps its real meaning and the footgun with it. Dropping the
-      # alias was never much of a guard anyway: `git checkout` is four more
-      # characters, and twenty years of muscle memory types them.
+      # Aliasing `co` straight to `switch` was tried first and is wrong:
+      # switch spells creation `-c`, so `co -b` would die on `unknown switch`,
+      # and `switch <sha>` refuses a commit without `--detach`. Silently
+      # changing what a familiar name does is worse than retiring it loudly.
       alias = {
         aa = "add --all";
         amend = "commit -v --amend";
         ap = "add --patch";
         br = "branch";
         ci = "commit -v";
-        co = "checkout";
+        co = "!f() { echo 'g co is retired. Use:' >&2; echo '  g sw <branch>        switch branches' >&2; echo '  g sw -c <branch>     create one   (note: -c, not -b)' >&2; echo '  g sw --detach <ref>  detach HEAD' >&2; echo '  g rs <file>          discard changes to a file' >&2; echo 'git checkout still works typed in full.' >&2; return 1; }; f";
         cp = "cherry-pick";
         d = "diff";
         dc = "diff --cached";
         l = "log --oneline --decorate -20";
         lg = "log --graph --oneline --decorate";
         pf = "push --force-with-lease";
+        # The other half of the checkout split. `rs <file>` discards working
+        # tree changes; `rs --staged <file>` unstages while keeping them,
+        # which is what the reference setup's `grh` (reset HEAD) did.
+        rs = "restore";
         st = "status";
         sw = "switch";
         undo = "reset --soft HEAD~1";
