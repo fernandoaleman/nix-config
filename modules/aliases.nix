@@ -36,6 +36,15 @@
     "..." = "cd ../..";
     "...." = "cd ../../..";
 
+    # ── terraform ────────────────────────────────────────
+    # The binary is not declared anywhere in this repo on purpose: terraform
+    # state records the version that wrote it and refuses older ones, so the
+    # version belongs to the project, in its mise.toml, not to the machine.
+    ti = "terraform init";
+    tp = "terraform plan";
+    ta = "terraform apply";
+    tv = "terraform validate";
+
     # ── odds and ends ────────────────────────────────────
     mkdir = "mkdir -p";
     path = "echo $PATH | tr -s ':' '\\n'";

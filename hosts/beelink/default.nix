@@ -14,9 +14,11 @@
     ../../modules/btop.nix
     ../../modules/fzf.nix
     ../../modules/git.nix
+    ../../modules/mise.nix
     ../../modules/packages.nix
     ../../modules/starship.nix
     ../../modules/tmux.nix
+    ../../modules/try.nix
   ];
 
   home.username = "faleman";

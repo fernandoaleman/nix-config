@@ -112,7 +112,24 @@ Omarchy's `starship.toml` contains Nerd Font glyphs in the private use area — 
 
 ## Open questions
 
-1. **`mise` overlaps with Nix by definition.** Both are version managers; Omarchy installs and activates mise, and the reference setup used it for language runtimes. Left to Omarchy for now, on the grounds that nothing is broken — but "Nix pins everything except the language toolchains, which mise pins separately" is a split worth making deliberately rather than by default.
+1. ~~`mise` overlaps with Nix by definition.~~ **Resolved 2026-09-20.** The split is deliberate now: **Nix owns the user environment, mise owns per-project runtimes.** They solve different problems. A project dictates its Ruby or Terraform version; you do not. Nix can do that through devShells and direnv, at considerably more ceremony, and the work repos already speak `mise.toml`.
+
+   **Terraform is the clearest case.** State files record the version that wrote them and refuse older binaries, and provider constraints pin per-repo — so a single flake-pinned terraform would be wrong the moment two repos disagree. It stays in per-project `mise.toml`; only the `ti`/`tp`/`ta`/`tv` aliases live here.
+
+   **`~/.config/mise/config.toml` cannot be managed by home-manager**, and this was tested rather than assumed. mise keeps settings and tool versions in that one file — no `conf.d`, no separate `settings.toml` — and Omarchy's 13 AI-tool shims each run `mise use -g --quiet <pkg>` *on every launch*, which writes to it. Pointed at a store path:
+
+   ```
+   mise ERROR Permission denied (os error 13) at path
+     "/nix/store/.<hash>-mise-config.toml.2rdSOe"
+   ```
+
+   Every one of those tools would break. (A first attempt used `chmod 444` to simulate a store path and mise wrote straight through it — worth remembering that simulating read-only is not the same as using the store.)
+
+   Worth recording that **Omarchy ships nothing at that path**: it is absent from `/etc/skel`, absent from the omarchy package, and `pacman -Qo` reports no owner. mise creates it, on Omarchy's behalf, via `mise use -g node@…` at install time and the shims thereafter.
+
+   Settings instead come from `MISE_*` environment variables in `modules/mise.nix`, which give the same defaults on both machines with nothing to collide over. Only two are declared — `idiomatic_version_file_enable_tools` and `ruby.compile`, both genuinely non-default. `legacy_version_file` was dropped: the reference setup set it to `true` and `true` is already mise's default.
+
+   One-off use needs no global tools at all: Omarchy ships system Python 3.14.7, and `mise x <tool>@<version> -- <cmd>` installs and runs on demand with no config file anywhere — verified by running a script under `python@3.12` in an empty directory.
 2. ~~`starship`, `zoxide` and `fzf` are installed here but initialised by Omarchy.~~ **fzf resolved 2026-09-13**, in [`modules/fzf.nix`](../modules/fzf.nix); `starship` and `zoxide` still open.
 
    The fzf case was the fragile one. Omarchy's rc sources `/usr/share/fzf/key-bindings.bash`, which `pacman -Qo` reports as owned by `fzf 0.74.3-1` — so once Nix supplied the binary, `Ctrl-R` depended on a pacman package that was no longer providing the tool. Removing it as an apparent duplicate would have broken `Ctrl-R` silently: the `command -v fzf` guard still passes, because Nix's fzf answers it, and the `source` then finds nothing.
