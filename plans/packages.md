@@ -83,6 +83,29 @@ Those stay in Omarchy's own layer, reached through `hosts/beelink/omarchy.nix`.
 
 Per zsh.md's rule, a helper that mutates the calling shell stays a shell function; everything else becomes a `writeShellScriptBin` derivation. `zd` calls `builtin cd`, so it is the function case, and it lives in `programs.bash.initExtra` rather than becoming a program.
 
+### btop: two settings, not a config file
+
+Omarchy ships a 10KB `btop.conf`. Diffed against the config btop generates for itself, it differs in exactly two places:
+
+```
+color_theme = "current"     (btop default: "Default")
+vim_keys    = true          (btop default: false)
+```
+
+Everything else is stock. So `modules/btop.nix` declares those two and lets btop supply the rest, rather than carrying 280 lines of defaults that would silently drift from whatever btop ships next.
+
+**btop is the one tool in the sweep whose theme is hex, not named ANSI colours** — `theme[main_bg]="#282828"` — so unlike starship and bat it does not follow the terminal palette for free. `color_theme = "current"` is therefore an indirection each machine satisfies its own way: on Omarchy, `~/.config/btop/themes/current.theme` is a symlink Omarchy manages into `~/.local/state/omarchy/current/theme/btop.theme`, so btop follows the active Omarchy theme. On macOS nothing provides it yet, and the Mac host will need to — either `programs.btop.themes.current` or a theme file in this repo.
+
+That works because `programs.btop` only writes themes it is explicitly given: declaring `settings` alone leaves `~/.config/btop/themes/` untouched. Verified after switching — the Omarchy symlink is still in place and still resolves. Declaring `themes.current` here would replace it with a static file and break Omarchy's theme switching, which is a feature in use.
+
+One aside that looks like a bug and is not: home-manager renders btop booleans as `True`/`False` rather than lowercase. btop accepts it — fed `vim_keys = True`, it parses and writes back `vim_keys = true`.
+
+### lazygit: nothing to share
+
+Omarchy's `lazygit/config.yml` is a **0-byte file** — both at `/etc/skel` and in `/usr/share/omarchy/config`. There is no configuration to carry across, so there is no `modules/lazygit.nix`. lazygit stays a binary in `home.packages` and both machines get its own defaults, which is already parity.
+
+This is the "ask whether it is needed" test answering itself: the module that would have been written to achieve parity turns out to be unnecessary *for* parity. Worth recording so the empty file is not mistaken later for an oversight.
+
 ### A copying hazard worth recording
 
 Omarchy's `starship.toml` contains Nerd Font glyphs in the private use area — `U+EBAB`, `U+F00C`, `U+EA71` for the conflicted, up-to-date and modified git states. They render as nothing in a terminal without that font, so transcribing the file by eye silently dropped all three and produced a prompt missing its git icons. The fix was to generate the Nix from the file's actual bytes and annotate each glyph with its codepoint. Any future config copied out of Omarchy should be diffed *semantically* — `tomllib`, not the eye — before being trusted.

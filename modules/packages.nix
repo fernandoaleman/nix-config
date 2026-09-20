@@ -18,7 +18,7 @@
     # installs the package itself.
 
     # ── System ───────────────────────────────────────────
-    btop
+    # btop is declared in modules/btop.nix.
     ncdu
 
     # ── Git ──────────────────────────────────────────────

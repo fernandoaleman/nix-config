@@ -10,6 +10,7 @@
     ../../modules/aliases.nix
     ../../modules/bash.nix
     ../../modules/bat.nix
+    ../../modules/btop.nix
     ../../modules/fzf.nix
     ../../modules/git.nix
     ../../modules/packages.nix
