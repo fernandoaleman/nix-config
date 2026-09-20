@@ -64,16 +64,23 @@ in
         email = "fernandoaleman@mac.com";
       };
 
-      # Seven names already present in *both* Omarchy's git config and the
-      # reference setup's, plus eight promoted from the shell aliases. The
-      # other 64 either dissolved or were dropped; plans/git.md has the list.
+      # Mostly names already present in *both* Omarchy's git config and the
+      # reference setup's, plus a few promoted from the shell aliases. The
+      # rest of the 79 dissolved or were dropped; plans/git.md has the list.
+      #
+      # `co` is deliberately absent, though both existing configs ship it.
+      # `git checkout` is two commands wearing one name: `checkout <branch>`
+      # switches, `checkout <file>` destroys uncommitted work with no
+      # confirmation and no undo. `switch` cannot touch the working tree, so
+      # removing the shortcut means the dangerous spelling is never the one
+      # that comes out of muscle memory. `git checkout` still works when typed
+      # in full.
       alias = {
         aa = "add --all";
         amend = "commit -v --amend";
         ap = "add --patch";
         br = "branch";
         ci = "commit -v";
-        co = "checkout";
         cp = "cherry-pick";
         d = "diff";
         dc = "diff --cached";
@@ -83,6 +90,12 @@ in
         st = "status";
         sw = "switch";
         undo = "reset --soft HEAD~1";
+        # `git stash save --include-untracked --no-keep-index` from the
+        # reference setup, modernised: git's own docs say save "is deprecated
+        # in favour of git stash push", and --no-keep-index is already push's
+        # default -- it exists only to counteract --patch, which implies
+        # --keep-index. So two of the three flags were doing nothing.
+        wip = "stash push --include-untracked";
       };
 
       # Carried forward from Omarchy's config. home-manager replaces that file

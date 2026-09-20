@@ -90,29 +90,44 @@ Three buckets, not two.
 
 **Dropped as unused (50).** The stash family alone is eleven aliases for a command already three characters long; `gcs` and `grbs` are multi-step shell one-liners with temporary variables; `gcount`, `gwc`, `gscp`, `gmt`, `gf` are rare. `grep` is not a git alias at all — it shadows the binary with `--color=always` and goes.
 
-**Kept (15).** Seven are the uncontested core already present in *both* existing git configs, so they are not a new invention:
+**Kept (15).** Six are the uncontested core already present in *both* existing git configs, so they are not a new invention:
 
 ```
 aa = add --all          ap = add --patch        br = branch
-ci = commit -v          co = checkout           pf = push --force-with-lease
+ci = commit -v          pf = push --force-with-lease
 st = status
 ```
 
-Eight promoted from the shell aliases, where the requirement still stands:
+The rest are promoted from the shell aliases, where the requirement still stands:
 
 ```
 amend = commit -v --amend               d  = diff
 dc    = diff --cached                   l  = log --oneline --decorate -20
 lg    = log --graph --oneline --decorate
-sw    = switch                          undo = reset --soft HEAD~1
-cp    = cherry-pick
+cp    = cherry-pick                     undo = reset --soft HEAD~1
+sw    = switch                          wip  = stash push --include-untracked
 ```
 
-**This list is provisional and meant to be edited.** It is a defensible starting cut, not a claim about what gets typed.
+### `co` is deliberately absent, and `sw` deliberately present
+
+Both existing configs ship `co = checkout`, and it is dropped anyway. `git checkout` is two commands wearing one name: `checkout <branch>` switches, and `checkout <file>` destroys uncommitted work with no confirmation and no undo. `git switch` cannot touch the working tree at all — the split exists precisely to remove that overload, and the experimental notice is gone as of git 2.55. Removing the shortcut means the dangerous spelling is never what comes out of muscle memory; `git checkout` still works when typed in full.
+
+This is the one alias with no antecedent in either config, kept on a deliberate decision to change a habit rather than on evidence of use — the opposite of how the rest of the list was chosen, and worth naming as such.
+
+### `wip`, and what the reference setup's stash idiom actually said
+
+`gsw` in the reference setup was `git stash save --include-untracked --no-keep-index` — nothing to do with `switch`. Two of its three flags turn out to be doing nothing, by git's own documentation:
+
+- `save` *"is deprecated in favour of `git stash push`"*.
+- `--no-keep-index` is already `push`'s default. `--keep-index` is the opt-in; `--no-keep-index` exists only to counteract `--patch`, which implies `--keep-index`.
+
+So the whole idiom is `git stash push --include-untracked`, aliased to `wip`. `st` was already `status` in both configs, so the stash family could not keep an `st`-shaped name; `wip` reads as the intent rather than the mechanics. Verified behaviour: staged changes and untracked files both go into the stash, the working tree comes back clean, and the index is not preserved — which is what `--no-keep-index` was asking for.
+
+The other ten stash aliases stay dropped. `git stash`, `git stash pop` and `git stash list` are short already, and only the include-untracked variant needed a name.
 
 ## Open questions
 
-1. **Is `commit.template` still wanted?** The `gitmessage` prompts for a 50-character subject and an 80-column body answering why/how/side-effects. Useful, but this repository enforces conventional commits through `committed`, and the template predates that. Kept for now because removing it changes daily behaviour; worth a deliberate decision.
+1. ~~Is `commit.template` still wanted?~~ **Dropped 2026-09-20**, along with `core.autocrlf`. Both came from the reference setup rather than from Omarchy and both failed the "ask whether it is needed" test: the template predates this repository's conventional-commit enforcement and had not been reached for, and `autocrlf` defends against CRLF that neither Linux nor macOS produces, where git's own guidance is now `.gitattributes text=auto` per repo. `diff.colorMoved` keeps `zebra` over Omarchy's `plain` as a recorded disagreement rather than an unexplained difference.
 2. **Should the `prepare-commit-msg` hook be global or scoped to work repositories?** It is a no-op on any branch without an `ABC-123` pattern, so global is harmless in practice — but a branch named `feat/API-2-thing` would get an unwanted prefix. Scoping it under the same `gitdir:` conditional as the work identity is the tidier answer if that conditional is being written anyway.
 3. **`init.defaultBranch = master`.** Both existing configs say `master` and this repository uses it, so it is kept. Noting it only because it is now an unusual choice and the decision should be deliberate rather than inherited.
 4. **Does `gh` belong in `git.nix`?** Its only job here is the credential helper, so it sits beside git rather than in a module of its own. It moves out the moment anything else about `gh` is configured.
