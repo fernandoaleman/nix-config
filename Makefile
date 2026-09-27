@@ -99,6 +99,34 @@ generations: ## List home-manager generations, newest last
 rollback: ## Activate the previous generation
 	home-manager rollback
 
+# ── Omarchy drift ──────────────────────────────────────
+# Linux tracks Omarchy's configs live -- tmux source-files them, alacritty
+# imports them, starship symlinks them -- so `omarchy update` flows straight
+# through and nothing here goes stale.
+#
+# The Mac has no Omarchy to track, so it uses the snapshots under modules/.
+# Those are byte-identical copies and must stay that way -- no headers, no
+# edits. Overrides live in the modules; the snapshots are evidence, not config.
+# This target reports when one has fallen behind the installed Omarchy, which
+# is the only way that drift becomes visible. Run it after `omarchy update`.
+.PHONY: omarchy-drift
+omarchy-drift: ## Diff the Mac snapshots against the installed Omarchy
+	@status=0; \
+	for pair in \
+	  "modules/tmux/omarchy.conf:/usr/share/omarchy/config/tmux/tmux.conf" \
+	  "modules/alacritty/omarchy.toml:/usr/share/omarchy/config/alacritty/alacritty.toml" \
+	  "modules/starship/omarchy.toml:/usr/share/omarchy/config/starship.toml"; do \
+		ours=$${pair%%:*}; theirs=$${pair#*:}; \
+		if [ ! -r "$$theirs" ]; then \
+			echo "skip  $$ours (no Omarchy at $$theirs)"; \
+		elif diff -q "$$ours" "$$theirs" >/dev/null 2>&1; then \
+			echo "ok    $$ours"; \
+		else \
+			echo "DRIFT $$ours"; diff -u "$$ours" "$$theirs" | sed 's/^/      /'; status=1; \
+		fi; \
+	done; \
+	exit $$status
+
 # ── Help ───────────────────────────────────────────────
 .PHONY: help
 help: ## Show this help

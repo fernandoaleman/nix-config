@@ -14,7 +14,7 @@
 # Dropped from the reference setup: catppuccin-tmux (hex, see above), tpm
 # (programs.tmux.plugins installs from nixpkgs, so the bootstrap script goes
 # too), and `default-shell /usr/bin/zsh`, which is obsolete -- see shell.md.
-{ ... }:
+{ lib, ... }:
 
 {
   programs.tmux = {
@@ -31,7 +31,14 @@
     # saying so explicitly.
     clock24 = true;
 
-    # Omarchy's tmux.conf, whole, with only history-limit changed.
+    # Omarchy's own tmux.conf is not copied here; it is sourced live by
+    # hosts/beelink, so `omarchy update` changes flow straight through. The
+    # Mac, which has no Omarchy, uses the snapshot in ./tmux/omarchy.conf --
+    # refreshed deliberately, with `make omarchy-drift` to show when it has
+    # fallen behind.
+    #
+    # Only genuine overrides live here, and they use mkAfter so they land
+    # after whichever base the host supplied.
     #
     # Deliberately not using programs.tmux's prefix/keyMode/clock24/etc.
     # options, convenient as they look. Each bundles more than the single line
@@ -45,11 +52,10 @@
     #             prompt from emacs editing to vi. Omarchy sets only mode-keys.
     #   clock24   defaults to false, flipping the clock to 12-hour where
     #             Omarchy inherits tmux's 24-hour default.
-    #
-    # Each was caught by diffing `list-keys` and `show-options` against a tmux
-    # server started on Omarchy's own config. The generated file now matches it
-    # binding for binding and option for option, history-limit aside.
-    extraConfig = builtins.readFile ./tmux/omarchy.conf;
+    extraConfig = lib.mkAfter ''
+      # Raised from Omarchy's 50000. Scrollback is cheap.
+      set -g history-limit 1000000
+    '';
   };
 
   # tdl / tds / tdlm / tsl. See the file for why these are functions.

@@ -109,6 +109,13 @@ migration. `plans/foundation.md` has the mechanics.
 - **Conventional commits**, enforced by `committed` via `prek` on `commit-msg`.
   Run `make setup` once per clone — git hooks do not travel with a clone.
 - **`make lint`** runs every hook over every file.
+- **Reference Omarchy's configs; do not copy them.** Where Omarchy ships a config this
+  repo wants, point at the live file rather than transcribing it — `source-file` for
+  tmux, `general.import` for alacritty, `mkOutOfStoreSymlink` for starship — so
+  `omarchy update` flows straight through. Copying freezes Omarchy at the version it was
+  copied from, silently, which is the same drift this repo exists to escape. Snapshots
+  under `modules/` exist only for the Mac, must stay byte-identical, and `make
+  omarchy-drift` enforces that.
 - **Directory creation is configuration, not a build task** — `home.activation` or
   `home.file`, never a Makefile target. This governs `$HOME`. System-level provisioning
   that must happen *before Nix exists* — creating the `/nix` Btrfs subvolume — cannot be

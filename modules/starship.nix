@@ -11,43 +11,24 @@
     enable = true;
     enableBashIntegration = true;
 
-    settings = {
-      add_newline = true;
-      command_timeout = 200;
-      format = "[$directory$git_branch$git_status]($style)$character";
-
-      character = {
-        error_symbol = "[✗](bold cyan)";
-        success_symbol = "[❯](bold cyan)";
-      };
-
-      directory = {
-        truncation_length = 2;
-        truncation_symbol = "…/";
-        repo_root_style = "bold cyan";
-        repo_root_format = "[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) ";
-      };
-
-      git_branch = {
-        format = "[$branch]($style) ";
-        style = "italic cyan";
-      };
-
-      git_status = {
-        format = "[$all_status]($style)";
-        style = "cyan";
-        ahead = "⇡\${count} ";  # U+21E1
-        diverged = "⇕⇡\${ahead_count}⇣\${behind_count} ";  # U+21D5 U+21E1 U+21E3
-        behind = "⇣\${count} ";  # U+21E3
-        conflicted = " ";  # U+EBAB
-        up_to_date = " ";  # U+F00C
-        untracked = "? ";
-        modified = " ";  # U+EA71
-        stashed = "";
-        staged = "";
-        renamed = "";
-        deleted = "";
-      };
-    };
+    # settings is deliberately empty. programs.starship only writes
+    # ~/.config/starship.toml when settings or presets are non-empty
+    # (hasGeneratedConfig in the module), so leaving it empty hands that path
+    # to the host -- which on Linux symlinks Omarchy's own file, live, so an
+    # omarchy update restyles the prompt without this repo being touched.
+    #
+    # STARSHIP_CONFIG is still exported, pointing at the same path, so the
+    # arrangement is invisible to starship.
+    #
+    # ./starship/omarchy.toml is a snapshot of Omarchy's prompt for the Mac,
+    # which has no Omarchy to point at. `make omarchy-drift` reports when it
+    # has fallen behind.
+    #
+    # Worth recording why the snapshot is a file rather than a Nix attrset:
+    # Omarchy's prompt carries Nerd Font glyphs in the private use area --
+    # U+EBAB, U+F00C, U+EA71 for the conflicted, up-to-date and modified git
+    # states. They render as nothing without that font, and transcribing the
+    # file by eye silently dropped all three.
+    settings = { };
   };
 }

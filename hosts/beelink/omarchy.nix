@@ -1,12 +1,21 @@
 # Omarchy-specific shell glue. Linux only, by definition -- none of this exists
 # on macOS, which is exactly why it is a host file rather than a shared module.
+{ lib, config, ... }:
 {
   # Alacritty's colours come from Omarchy's live theme state, so switching
   # themes with omarchy-theme-set restyles the terminal as it always did. This
   # is the one line of modules/alacritty.nix that cannot be shared: the path
   # does not exist on macOS, where the Mac host will point at a palette kept in
   # this repo instead.
+  # Both imports listed explicitly rather than relying on Omarchy's config to
+  # chain to the theme itself: alacritty documents that "imports are loaded in
+  # order... with the importing file being loaded last", but says nothing about
+  # an imported file's own imports being followed.
+  #
+  # Order matters. Omarchy's base first, then the theme, then whatever
+  # modules/alacritty.nix sets -- last wins.
   programs.alacritty.settings.general.import = [
+    "/usr/share/omarchy/config/alacritty/alacritty.toml"
     "~/.local/state/omarchy/current/theme/alacritty.toml"
   ];
 
@@ -33,12 +42,22 @@
     foot.desktop
   '';
 
-  # Omarchy's tmux keybinding cheatsheet, which shells out to an omarchy-*
-  # binary and so cannot be shared. The binding itself is Omarchy's; only its
-  # location here is this repo's doing.
-  programs.tmux.extraConfig = ''
+  # Omarchy's tmux.conf, sourced live rather than copied, so an omarchy
+  # update changes tmux here without this repo being touched. mkBefore puts it
+  # ahead of the shared overrides in modules/tmux.nix, which then win.
+  #
+  # The keybinding cheatsheet is Omarchy's own and shells out to an omarchy-*
+  # binary, so it could not be shared even if it were wanted on the Mac.
+  programs.tmux.extraConfig = lib.mkBefore ''
+    source-file /usr/share/omarchy/config/tmux/tmux.conf
     bind -N "Show Tmux keybindings" ? display-popup -E -w 80% -h 70% -T "Tmux keybindings" "omarchy-menu-tmux-keybindings --print | less -R"
   '';
+
+  # Omarchy's prompt, symlinked live rather than copied. mkOutOfStoreSymlink
+  # points outside the Nix store, so the target stays whatever the omarchy
+  # package currently ships.
+  xdg.configFile."starship.toml".source =
+    config.lib.file.mkOutOfStoreSymlink "/usr/share/omarchy/config/starship.toml";
 
   programs.bash = {
     # home-manager writes ~/.bashrc and ~/.profile, replacing the skel-seeded

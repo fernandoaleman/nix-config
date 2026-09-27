@@ -16,81 +16,31 @@
   programs.alacritty = {
     enable = true;
 
+    # Almost nothing here on purpose.
+    #
+    # Omarchy's own alacritty.toml supplies the font, padding, decorations,
+    # OSC 52 clipboard and the four CSI-u keybindings. hosts/beelink imports
+    # that file *live*, so an omarchy update changes the terminal without this
+    # repo being touched. Anything set here would win over it -- alacritty
+    # loads imports first and the importing file last -- which is exactly the
+    # drift worth avoiding, so only genuinely-ours settings belong here.
+    #
+    # ./alacritty/omarchy.toml is a snapshot of that file for the Mac, which
+    # has no Omarchy to import from. `make omarchy-drift` reports when it has
+    # fallen behind.
     settings = {
-      env.TERM = "xterm-256color";
-      terminal.osc52 = "CopyPaste";
-
-      font = {
-        normal = {
-          family = "JetBrainsMono Nerd Font";
-          style = "Regular";
-        };
-        bold = {
-          family = "JetBrainsMono Nerd Font";
-          style = "Bold";
-        };
-        italic = {
-          family = "JetBrainsMono Nerd Font";
-          style = "Italic";
-        };
-        # Sized for the Beelink's display. A retina Mac will almost certainly
-        # want this larger -- the old setup used 20 there against 12 here -- so
-        # expect the macOS host to override it rather than this to stay shared.
-        size = 9;
-      };
-
-      window = {
-        padding = {
-          x = 14;
-          y = 14;
-        };
-        # Hyprland draws no titlebar, so alacritty is told not to expect one.
-        # macOS has no compositor doing that, and will want "buttonless".
-        decorations = "None";
-
-        # macOS-only, and inert on Linux -- alacritty parses it without
-        # complaint, so it lives here rather than in the Mac host.
-        #
-        # It matters a great deal. Omarchy's tmux config binds 26 prefix-less
-        # Alt combinations: M-Enter to split, M-1..M-9 for windows, M-arrows
-        # for windows and sessions, C-M-arrows for panes, C-M-S-arrows to
-        # resize. On macOS, Option defaults to composing characters -- ⌥e gives
-        # é -- and alacritty's option_as_alt defaults to "None", so every one of
-        # those bindings would silently do nothing there.
-        #
-        # "Both" rather than "OnlyLeft" because on Linux both Alt keys send
-        # Alt, and matching that is the point. The cost is losing ⌥-composition
-        # on the Mac; "OnlyLeft" trades one Alt key back for it.
-        option_as_alt = "Both";
-      };
-
-      keyboard.bindings = [
-        {
-          key = "Insert";
-          mods = "Shift";
-          action = "Paste";
-        }
-        {
-          key = "Insert";
-          mods = "Control";
-          action = "Copy";
-        }
-        # Shift+Return as CSI-u, so TUIs can tell it from Return without
-        # reading it as Alt+Return. home-manager rewrites the literal \uXXXX
-        # form into a real escape when it generates the TOML.
-        {
-          key = "Return";
-          mods = "Shift";
-          chars = "\\u001B[13;2u";
-        }
-        # Legacy encoding sends Alt+Shift+Return identically to Alt+Return;
-        # CSI-u lets tmux match M-S-Enter.
-        {
-          key = "Return";
-          mods = "Alt|Shift";
-          chars = "\\u001B[13;4u";
-        }
-      ];
+      # macOS-only, and inert on Linux -- alacritty parses it without
+      # complaint, verified with migrate --dry-run and a real launch, so it
+      # lives here rather than in the Mac host.
+      #
+      # It matters a great deal. Omarchy's tmux config binds 26 prefix-less
+      # Alt combinations. On macOS, Option composes characters -- the key
+      # gives e-acute rather than Alt -- and option_as_alt defaults to "None",
+      # so every one of those bindings would silently do nothing there.
+      #
+      # "Both" rather than "OnlyLeft" because on Linux both Alt keys send Alt,
+      # and matching that is the point.
+      window.option_as_alt = "Both";
     };
   };
 }
