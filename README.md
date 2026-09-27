@@ -7,9 +7,12 @@ home-manager is the single layer both machines share.
 
 ## Status
 
-Bootstrapped. Nix is installed, the flake evaluates, and one home-manager generation is
-active on the Beelink. No configuration modules are written yet — the shell, editor,
-terminal and git all still come from Omarchy's defaults.
+Running on the Beelink. Nix is installed, and twelve modules cover the shell, git,
+terminal, tmux, the CLI tools, mise and `try`. Omarchy still owns the system
+layer, and its own configs are tracked *live* rather than copied — `omarchy update`
+changes flow straight through.
+
+Not done: secrets, and the macOS host.
 
 ```sh
 make switch   # build and activate
@@ -25,7 +28,10 @@ rejected and why, the chosen design, and the questions still open.
   the Omarchy boundary, and the findings from verifying it on a live machine
 - [`plans/bootstrap.md`](plans/bootstrap.md) — a fresh Omarchy install to a working
   machine, and the one step that must happen before Nix is installed
-- [`plans/zsh.md`](plans/zsh.md) — the shell, rebuilt natively
+- [`plans/shell.md`](plans/shell.md) — bash, and why zsh is deferred
+- [`plans/zsh.md`](plans/zsh.md) — the zsh design, deferred but still accurate
+- [`plans/git.md`](plans/git.md), [`packages.md`](plans/packages.md),
+  [`terminals.md`](plans/terminals.md), [`tmux.md`](plans/tmux.md) — one per section
 - [`plans/secrets.md`](plans/secrets.md) — keeping private material out of a public repo
   (decision deliberately deferred)
 

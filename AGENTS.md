@@ -4,11 +4,16 @@ Nix + home-manager configuration for Omarchy (Arch) and macOS. **Not NixOS** —
 remains the operating system on Linux, macOS remains macOS, and home-manager is the one
 layer both machines share.
 
-**Current state: the flake exists and one generation has been activated; no modules are
-written yet.** `flake.nix` pins nixpkgs-unstable and home-manager master, and
-`hosts/beelink/` is a minimal host that switches cleanly — username, home directory,
-`stateVersion`, `xdg.enable`, and `programs.home-manager.enable`, nothing more. `modules/`
-does not exist yet; it is created when the first shared module is written.
+**Current state: twelve modules, live on the Beelink. The Mac does not exist yet.**
+
+`flake.nix` pins nixpkgs-unstable and home-manager master. `hosts/beelink/` imports
+`modules/` for alacritty, aliases, bash, bat, btop, fzf, git, mise, packages, starship,
+tmux and try, plus `hosts/beelink/omarchy.nix` for the Linux-only glue.
+
+Two things are designed but not built: **secrets** (1Password, three `op` invocations still
+unverified against a real vault) and **`hosts/<mac>/`**. The cross-platform claim this
+repository rests on is therefore still untested — building the Mac host is the experiment
+that settles it, and the measure is how large that host file has to be.
 
 The design lives in [`plans/`](plans/) and [`plans/foundation.md`](plans/foundation.md) is
 the entry point — read it before proposing or writing anything.
