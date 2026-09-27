@@ -47,6 +47,8 @@ Following foundation.md's convention — named scripts sourced in order by one e
 2. **`nix-install`** — run the Nix installer. Root. Idempotent: does nothing if `nix` is already on PATH.
 3. **`switch`** — `home-manager switch --flake .#<host>`. Not root. This is the step that is run again and again afterwards; the first run is just the first of many.
 
+One manual step sits outside this sequence, deliberately. **1Password is installed the platform's way**, not by the flake: on Omarchy with `omarchy-install-service-1password` or its menu entry, which installs both packages, wires the Chromium extension and launches under `uwsm`; on macOS from the App Store or 1Password's own installer. Nix could not script the Omarchy path without `sudo pacman` and writes under `/usr/share` from `home.activation`, which would make every `switch` demand root. It is also not needed to reach a working machine — only to reach the secrets in [`secrets.md`](secrets.md) — so it belongs after the sequence above rather than inside it.
+
 Step 1 is the only place the bootstrap asks for `sudo`, and it is the only step that cannot be undone cheaply — so it is first, it is loud about what it is doing, and it refuses to guess.
 
 ### Step 1 in full
