@@ -1,4 +1,4 @@
-# MacBook (Apple Silicon) -- standalone home-manager, no nix-darwin.
+# MacBook Pro (Apple Silicon) -- standalone home-manager, no nix-darwin.
 #
 # nix-darwin writes /etc/bashrc and friends and manages system defaults. None
 # of that is needed to test whether the shared modules port, and standalone

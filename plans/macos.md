@@ -26,7 +26,7 @@ large host file   most config is platform-specific after all, and two simpler
 
 ### Phase 0 — evaluate from Linux, no Mac involved (done)
 
-Nix **evaluation is cross-platform**; only *building* needs the target system. So `hosts/macbook/` can be written and evaluated from the Beelink, catching module errors, option type errors and assertion failures before the Mac is touched at all.
+Nix **evaluation is cross-platform**; only *building* needs the target system. So `hosts/macbook-pro/` can be written and evaluated from the Beelink, catching module errors, option type errors and assertion failures before the Mac is touched at all.
 
 This also answers the experimental question on its own.
 
@@ -78,4 +78,5 @@ It evaluates; it has not been built or activated. Specifically untested: that ev
 1. **The palette snapshot is frozen by design.** `modules/alacritty/omarchy-theme.toml` is the Gruvbox theme active when it was taken. The Mac has no `omarchy-theme-set`, so a theme change on Omarchy will not follow. Either that is accepted, or theme switching needs a macOS answer — shipping several and selecting one, as the reference setup did with four Catppuccin variants.
 2. **btop falls back to its default theme on macOS.** Unlike starship and bat, btop's theme is hex rather than named ANSI colours, so it does not follow the terminal palette for free. Matching it would mean snapshotting `btop.theme` too.
 3. **Omarchy's shell layer has no macOS equivalent**, and that is the largest felt difference: 28 aliases and 22 functions, of which only the portable subset was shared. `rsw`/`lsw`/`dsw` specifically use `inotifywait` and `setsid` and would need an `fswatch` rewrite — not currently used, so not done.
-4. **The hostname and username are assumed** — `faleman@macbook` and `/Users/faleman`. Both are one-line changes once the real values are known.
+4. ~~The hostname and username are assumed.~~ **Confirmed 2026-10-01:** `faleman@macbook-pro`, `/Users/faleman`.
+5. **A second Mac is coming.** The reference repo carries `push-to-mac-studio` and `pull-from-mac-studio`, and the MacBook Pro is being tested first precisely so the desktop is not disturbed. That matters structurally: of the seven overrides in `hosts/macbook-pro/`, **six are macOS-wide** — the snapshots, `buttonless`, `coreutils`, the btop theme — and only `font.size` is specific to this machine. When the second Mac lands, those six want factoring into a `modules/darwin.nix` that both Macs import, leaving each host with little more than a font size. Not done now: one Mac is not evidence of a shared layer, and guessing at the split before the second machine exists is how premature abstraction gets in.
