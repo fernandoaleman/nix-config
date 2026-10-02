@@ -133,6 +133,22 @@ Under the nix-provided bash 5.3.15 the identical `.bashrc` loads clean: `zd`, `t
 
 **Conclusion: a macOS host must not use `/bin/bash`.** The login shell has to be the nix one, which needs its path in `/etc/shells` before `chsh` will take it — the same friction [`bootstrap.md`](bootstrap.md) open question 6 records for Omarchy, now confirmed as a hard requirement rather than a preference. `/bin/bash` remains fine for *creating* the account, since `home-manager switch` is a nix command and does not care what the login shell is.
 
+### PATH ordering works, but measuring it over SSH does not
+
+macOS `/etc/profile` runs `path_helper`, which rebuilds `PATH` from `/etc/paths` and `/etc/paths.d/*` — putting Homebrew and the system ahead of everything, and appending whatever was already there. That looks fatal for a pinned toolchain, and on a first measurement it appeared to be: every tool resolving to `/opt/homebrew`, none to nix.
+
+It is not. `/etc/profile` sources `/etc/bashrc` **after** `path_helper`, and `/etc/bashrc` sources `nix-daemon.sh`, which prepends:
+
+```
+export PATH="$NIX_LINK/bin:/nix/var/nix/profiles/default/bin:$PATH"
+```
+
+So in a genuine login shell the nix profile ends up first and all fifteen sampled tools resolve to it.
+
+**The trap is that `nix-daemon.sh` guards itself**: `if [ -n "${__ETC_PROFILE_NIX_SOURCED:-}" ]; then return; fi`. Over SSH that variable is already in the environment, so the prepend is skipped and `path_helper`'s ordering survives — making it look as though Homebrew had won. Measuring with `env -u __ETC_PROFILE_NIX_SOURCED -u PATH bash -lic …` reproduces a real first login and shows the correct order.
+
+Recorded because it cost two wrong conclusions in opposite directions, and because anyone verifying a macOS PATH over SSH will hit the same thing. It also means standalone home-manager is sufficient here: nix-darwin's `setEnvironment` would solve a problem that `nix-daemon.sh` already solves.
+
 ### What Phase 0 does not prove
 
 It evaluates; it has not been built or activated. Specifically untested: that every derivation builds on darwin, that activation succeeds, that the fonts render, that the palette actually matches side by side, and that the bootstrap path works end to end on a machine that has never had Nix. Those are Phases 1–3.
