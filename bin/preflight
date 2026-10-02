@@ -1,0 +1,90 @@
+#!/usr/bin/env bash
+# Show what `home-manager switch` would do to this machine, without doing it.
+#
+# Builds the generation and reports which files it would place, which of those
+# already exist, and -- where chezmoi is still installed -- which of the
+# collisions it currently owns. Read-only: nothing is linked, nothing is moved.
+#
+# Usage:  bin/preflight [<user>@<host>]
+# Default: $USER@$(hostname -s)
+
+set -euo pipefail
+
+config=${1:-"${USER}@$(hostname -s)"}
+repo=$(cd "$(dirname "$0")/.." && pwd)
+cd "$repo"
+
+hr() { printf '─%.0s' $(seq 1 64); echo; }
+
+echo "preflight: $config"
+hr
+
+if ! command -v nix >/dev/null 2>&1; then
+  echo "nix is not on PATH. Install it first, then open a new shell." >&2
+  exit 1
+fi
+
+if ! nix eval --raw ".#homeConfigurations.\"$config\".activationPackage.drvPath" >/dev/null 2>&1; then
+  echo "No flake output for \"$config\"." >&2
+  echo "Available:" >&2
+  nix eval --json '.#homeConfigurations' --apply 'builtins.attrNames' 2>/dev/null |
+    tr -d '[]"' | tr ',' '\n' | sed 's/^/  /' >&2
+  exit 1
+fi
+
+echo "Building (first run fetches a lot; this is the slow part)..."
+if ! out=$(nix build --no-link --print-out-paths \
+  ".#homeConfigurations.\"$config\".activationPackage" 2>&1); then
+  echo
+  echo "BUILD FAILED — this output is the useful part:"
+  hr
+  printf '%s\n' "$out" | tail -40
+  exit 1
+fi
+generation=$(printf '%s\n' "$out" | tail -1)
+echo "ok: $generation"
+echo
+
+files=$(find -L "$generation/home-files" -type f 2>/dev/null |
+  sed "s|^$generation/home-files/||" | sort)
+count=$(printf '%s\n' "$files" | grep -c . || true)
+
+hr
+echo "WOULD PLACE ($count files)"
+hr
+printf '%s\n' "$files" | sed 's/^/  /'
+echo
+
+# A collision is an existing path that is not already one of our symlinks.
+collisions=""
+while IFS= read -r f; do
+  [ -n "$f" ] || continue
+  target="$HOME/$f"
+  if [ -e "$target" ] && [ ! -L "$target" ]; then
+    collisions="${collisions}${f}"$'\n'
+  fi
+done <<< "$files"
+collisions=$(printf '%s' "$collisions" | grep -c . >/dev/null 2>&1 && printf '%s' "$collisions" || printf '')
+
+hr
+if [ -z "$collisions" ]; then
+  echo "COLLISIONS: none — a plain switch would place everything cleanly"
+  hr
+else
+  n=$(printf '%s\n' "$collisions" | grep -c .)
+  echo "COLLISIONS ($n) — these exist already; switch -b bak renames them"
+  hr
+  printf '%s\n' "$collisions" | grep . | while IFS= read -r f; do
+    owner="unmanaged"
+    if command -v chezmoi >/dev/null 2>&1 && chezmoi managed 2>/dev/null | grep -qxF "$f"; then
+      owner="chezmoi"
+    fi
+    printf '  %-46s %s\n' "$f" "$owner"
+  done
+fi
+echo
+
+hr
+echo "NOTHING WAS CHANGED. To apply:"
+echo "  home-manager switch -b bak --flake \".#$config\""
+hr

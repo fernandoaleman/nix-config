@@ -83,6 +83,10 @@ switch: ## Build and activate the configuration
 build: ## Build without activating; leaves ./result to inspect
 	nix build '.#homeConfigurations."$(HM)".activationPackage'
 
+.PHONY: preflight
+preflight: ## Show what a switch would do here, without doing it
+	@bin/preflight $(HM)
+
 .PHONY: check
 check: ## Evaluate the flake without building
 	nix flake check
