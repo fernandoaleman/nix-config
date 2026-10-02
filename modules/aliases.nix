@@ -49,6 +49,38 @@
     mkdir = "mkdir -p";
     path = "echo $PATH | tr -s ':' '\\n'";
 
+    # ── git ──────────────────────────────────────────────
+    # `g` is load-bearing, not a convenience: modules/git.nix puts all 17 git
+    # aliases in the *git subcommand* namespace precisely because Omarchy
+    # aliases g to git, so `g st` works and `gst` is unnecessary. Leaving g to
+    # Omarchy meant macOS had neither -- every one of those 17 unreachable
+    # without typing `git` in full. Exactly the trap AGENTS.md names: "Omarchy
+    # already does this" is the same sentence as "the Mac will not have this".
+    g = "git";
+    gcm = "git commit -m";
+    gcam = "git commit -a -m";
+    gcad = "git commit -a --amend";
+
+    # ── tools, where the tool itself is cross-platform ───
+    t = "tmux attach || tmux new -s Work";
+    r = "rails";
+    mup = "MISE_MINIMUM_RELEASE_AGE=0 mise up";
+    c = "opencode --auto";
+    cx = ''printf "\033[2J\033[3J\033[H" && claude --permission-mode auto'';
+    cy = "codex --approve-for-me";
+
+    # Wrappers around tdl, which modules/tmux.nix already shares.
+    ic = "tdl c";
+    ix = "tdl cx";
+    icx = "tdl c cx";
+
+    # Omarchy picks a kitty-specific preview when TERM is xterm-kitty; this is
+    # its other branch, which is the one that applies on both machines.
+    ff = "fzf --preview 'bat --style=numbers --color=always {}'";
+    eff = ''$EDITOR "$(ff)"'';
+
+    decompress = "tar -xzf";
+
     # ── docker ───────────────────────────────────────────
     # 36 aliases in the reference setup, cut to 8. Once `d` and `dc` exist,
     # `dps` is one keystroke better than `d ps` and `dstart` is one better than
@@ -90,10 +122,19 @@
     enableBashIntegration = true;
   };
 
-  # `zd` mutates the calling shell's directory, so unlike the rest of Omarchy's
-  # helpers it cannot become a writeShellScriptBin derivation -- it has to be a
-  # function in the shell. Taken verbatim from Omarchy's default/bash/aliases.
+  # Functions rather than aliases, taken verbatim from Omarchy. `zd` mutates
+  # the calling shell's directory so it cannot become a writeShellScriptBin
+  # derivation; `n` and `compress` are here to keep Omarchy's set together
+  # rather than split across two mechanisms.
+  #
+  # Omarchy defines these names too, and its rc is sourced from bashrcExtra,
+  # which runs before initExtra -- so on Linux these definitions win and on
+  # macOS they are the only ones. Either way both machines run this copy.
   programs.bash.initExtra = ''
+    n() { if [ "$#" -eq 0 ]; then command nvim . ; else command nvim "$@"; fi; }
+
+    compress() { tar -czf "''${1%/}.tar.gz" "''${1%/}"; }
+
     zd() {
       if (( $# == 0 )); then
         builtin cd ~ || return
