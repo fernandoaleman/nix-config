@@ -74,7 +74,20 @@
   programs.btop.settings.color_theme = lib.mkForce "Default";
 
   # ── 7. coreutils, for GNU behaviour over BSD ─────────────────────────
-  # The one package that is macOS-only rather than shared: it exists to undo a
-  # difference that does not exist on Linux.
-  home.packages = [ pkgs.coreutils ];
+  # Exists to undo a difference Linux does not have.
+  #
+  # ── 8. the font the terminal config asks for ─────────────────────────
+  # Omarchy installs JetBrainsMono Nerd Font system-wide on Linux, so
+  # modules/alacritty.nix can simply name it. macOS supplies nothing, and the
+  # font was absent from all three font directories -- alacritty would have
+  # fallen back to a default, and the Nerd Font glyphs in Omarchy's starship
+  # prompt (U+EBAB, U+F00C, U+EA71 for the git states) would have rendered as
+  # empty boxes.
+  #
+  # home-manager links fonts into ~/Library/Fonts on darwin, which is why the
+  # generation carries .home-manager-fonts-version there.
+  home.packages = [
+    pkgs.coreutils
+    pkgs.nerd-fonts.jetbrains-mono
+  ];
 }
