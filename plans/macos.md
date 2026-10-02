@@ -101,6 +101,38 @@ That is not a defect in the modules; it is [`shell.md`](shell.md)'s deferred dec
 
 Not decided here. It needs deciding before Phase 3, because until then the Mac gets files it never reads.
 
+## Phase 2 result: it activates, and Apple's bash is unusable
+
+Switched on a throwaway `nixtest` account 2026-10-01. Activation succeeded, including the darwin-only steps home-manager runs by itself: `checkAppManagementPermission`, `copyApps` (populating `~/Applications/Home Manager Apps`), `setupLaunchAgents`, and `batCache`.
+
+**All 24 declared tools resolve to the nix profile, none to the system, none missing** — and the versions are identical to the Beelink's: `bat 0.26.1`, `fd 10.5.0`, `ripgrep 15.2.0`, `fzf 0.74.4`, `jq 1.8.2`, `starship 1.26.0`, `zoxide 0.10.0`, `git 2.55.0`. That is the parity claim made concrete rather than argued.
+
+### Apple's bash 3.2 breaks the configuration, and not gently
+
+macOS ships bash 3.2.57, frozen at the last GPLv2 release in 2007. Starting an interactive shell against our generated `.bashrc`:
+
+```
+bash: shopt: globstar: invalid shell option name
+bash: shopt: checkjobs: invalid shell option name
+bash: .bashrc: line 41: conditional binary operator expected
+bash: .bashrc: line 41: syntax error near `BASH_COMPLETION_VERSINFO'
+```
+
+The first two are noise — bash 4.0 options that 3.2 rejects and moves past. The third is a **syntax error**, and it is fatal to everything after it. Line 41 is home-manager's own bash-completion guard, `[[ ! -v BASH_COMPLETION_VERSINFO ]]`, and `-v` is a bash 4.2 test operator.
+
+Everything in `initExtra` is therefore lost:
+
+```
+zd         MISSING      Ctrl-R fzf   not bound
+tdl / tds  MISSING      try          binary only, integration never ran
+```
+
+The aliases survive only because `home.shellAliases` is emitted *before* that line. So the failure is partial and silent — a shell that looks configured, with half its behaviour missing.
+
+Under the nix-provided bash 5.3.15 the identical `.bashrc` loads clean: `zd`, `tdl`, `tds` and `try` are all functions, `Ctrl-R` is bound, no errors. The Beelink runs bash 5.3 as well, so this is also what makes the two machines genuinely the same shell.
+
+**Conclusion: a macOS host must not use `/bin/bash`.** The login shell has to be the nix one, which needs its path in `/etc/shells` before `chsh` will take it — the same friction [`bootstrap.md`](bootstrap.md) open question 6 records for Omarchy, now confirmed as a hard requirement rather than a preference. `/bin/bash` remains fine for *creating* the account, since `home-manager switch` is a nix command and does not care what the login shell is.
+
 ### What Phase 0 does not prove
 
 It evaluates; it has not been built or activated. Specifically untested: that every derivation builds on darwin, that activation succeeds, that the fonts render, that the palette actually matches side by side, and that the bootstrap path works end to end on a machine that has never had Nix. Those are Phases 1–3.
