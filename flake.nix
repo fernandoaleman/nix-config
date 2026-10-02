@@ -36,5 +36,12 @@
         # upstream home-manager module out of the try input.
         extraSpecialArgs = { inherit inputs; };
       };
+
+      # Standalone home-manager, not nix-darwin -- see hosts/macbook.
+      homeConfigurations."faleman@macbook" = home-manager.lib.homeManagerConfiguration {
+        pkgs = nixpkgs.legacyPackages."aarch64-darwin";
+        modules = [ ./hosts/macbook ];
+        extraSpecialArgs = { inherit inputs; };
+      };
     };
 }
