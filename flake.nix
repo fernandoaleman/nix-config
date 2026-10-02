@@ -43,5 +43,23 @@
         modules = [ ./hosts/macbook-pro ];
         extraSpecialArgs = { inherit inputs; };
       };
+
+      # The same macOS host under a throwaway account, for testing a switch
+      # without touching a working machine. hosts/macbook-pro pins the username
+      # and home directory, so they are forced aside here rather than the host
+      # being made generic for one temporary consumer.
+      #
+      # Delete this output once the real account has migrated.
+      homeConfigurations."nixtest@macbook-pro" = home-manager.lib.homeManagerConfiguration {
+        pkgs = nixpkgs.legacyPackages."aarch64-darwin";
+        modules = [
+          ./hosts/macbook-pro
+          {
+            home.username = nixpkgs.lib.mkForce "nixtest";
+            home.homeDirectory = nixpkgs.lib.mkForce "/Users/nixtest";
+          }
+        ];
+        extraSpecialArgs = { inherit inputs; };
+      };
     };
 }
