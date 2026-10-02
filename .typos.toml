@@ -10,3 +10,5 @@ extend-exclude = ["flake.lock"]
 # misspelling of "SET" and silently rewrites it. Model numbers are facts, not
 # prose, so they are pinned here rather than left to the corrector.
 SER8 = "SER8"
+PNG = "PNG"
+PNGs = "PNGs"
