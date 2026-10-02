@@ -69,6 +69,38 @@ home.sessionVariables    differs only in /home vs /Users, plus
 
 Also confirmed: all 25 declared packages build for `aarch64-darwin`, and `option_as_alt = "Both"` reaches the Mac from the shared module — without it, all 26 of Omarchy's prefix-less Alt bindings in tmux would silently do nothing there, since macOS Option composes characters by default.
 
+## Phase 1 result: it builds, and the collisions are clean
+
+Run 2026-10-01 over SSH. The Mac turned out to need no installer — Nix 2.35.2 was already there, from the same `NixOS/nix-installer` (`/nix/receipt.json` present), with flakes enabled and `/nix` on its own APFS volume at `/dev/disk3s7`. That is the macOS counterpart of the Btrfs subvolume, and the installer had done it unprompted.
+
+**Every derivation built on `aarch64-darwin`.** This was the first time any of them had been built rather than evaluated, and nothing failed.
+
+Sixteen files would be placed, against the Beelink's sixteen — a coincidence of count, not of content. The Mac drops the Linux-only three (`environment.d`, `systemd/user/tray.target`, `hyprland-xdg-terminals.list`) and gains the two alacritty snapshots plus `Library/Fonts/.home-manager-fonts-version`, which home-manager adds on darwin by itself.
+
+Six collisions, **all six owned by chezmoi**:
+
+```
+.config/alacritty/alacritty.toml    .config/git/config
+.config/btop/btop.conf              .config/starship.toml
+.config/gh/config.yml               .config/tmux/tmux.conf
+```
+
+No unmanaged-file surprises, which is the outcome that makes Phase 3 tractable: every collision is a file whose other owner can be told to let go.
+
+### The finding Phase 1 actually turned up
+
+`.bashrc`, `.bash_profile` and `.profile` are **not** collisions, because they do not exist on the Mac. The login shell there is `/opt/homebrew/bin/zsh`, and chezmoi manages `.config/zsh/` — the full 26-file reference setup.
+
+So a switch on the Mac would place a complete bash configuration that **nothing would read**. Every alias, the history settings, the ported Omarchy functions: all inert until the shell changes.
+
+That is not a defect in the modules; it is [`shell.md`](shell.md)'s deferred decision arriving on the machine where it actually bites. Three ways out, none free:
+
+1. **`chsh` the Mac to bash.** Consistent with Omarchy, and the config works immediately. Costs the Homebrew zsh setup that works today.
+2. **Revisit zsh.** `shell.md` chose bash on the strength of Omarchy's 22 shell functions, which do not exist on macOS — so the argument that settled it is weakest precisely here. `zsh.md` is still accurate and the content is already shell-neutral.
+3. **Different shells per machine.** Against the parity rule, and it would double the surface.
+
+Not decided here. It needs deciding before Phase 3, because until then the Mac gets files it never reads.
+
 ### What Phase 0 does not prove
 
 It evaluates; it has not been built or activated. Specifically untested: that every derivation builds on darwin, that activation succeeds, that the fonts render, that the palette actually matches side by side, and that the bootstrap path works end to end on a machine that has never had Nix. Those are Phases 1–3.
